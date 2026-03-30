@@ -53,4 +53,5 @@ Arquivo:
 ## ✏️ Protótipo do Projeto
 ```
 https://www.figma.com/make/4V1c4zootORBRlYjwKvvAf/Investment-App-Design?t=avBU6lV1D8zKgjZK-1
+https://www.figma.com/make/4V1c4zootORBRlYjwKvvAf/Investment-App-Design?p=f&t=J78XCA0yhjMj7pRS-0&fullscreen=1
 ```
