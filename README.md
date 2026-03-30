@@ -47,3 +47,10 @@ Arquivo:
 * Repositório hospedado no **GitHub**
 * Gerenciamento de tarefas utilizando **GitHub Projects**
 * Organização das atividades através de **Issues**
+
+---
+
+## ✏️ Protótipo do Projeto
+```
+https://www.figma.com/make/4V1c4zootORBRlYjwKvvAf/Investment-App-Design?t=avBU6lV1D8zKgjZK-1
+```
