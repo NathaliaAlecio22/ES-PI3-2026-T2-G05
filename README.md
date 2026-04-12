@@ -57,6 +57,6 @@ https://www.figma.com/make/4V1c4zootORBRlYjwKvvAf/Investment-App-Design?p=f&t=J7
 
 
 ## wireframe visual
-```
+
 <img width="1485" height="852" alt="image" src="https://github.com/user-attachments/assets/4c2f1cea-36f2-441f-a89f-2ca5bd501c96" />
-```
+
