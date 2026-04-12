@@ -3,7 +3,16 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:invest_up/main.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final String email;
+  final String name;
+  final String cpf;
+
+  const HomePage({
+    super.key, 
+    required this.email,
+    required this.name,
+    required this.cpf,
+  });
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -122,7 +131,7 @@ class _HomePageState extends State<HomePage> {
                     ),
 
                     Text(
-                      'Digite seu email e enviaremos instruções para redefinir sua senha',
+                      'Olá name. Digite seu email e enviaremos instruções para redefinir sua senha',
                       textAlign: TextAlign.center,
                       style: GoogleFonts.lato(
                         textStyle: TextStyle(

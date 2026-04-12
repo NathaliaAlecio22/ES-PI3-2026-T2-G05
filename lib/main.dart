@@ -3,8 +3,14 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:invest_up/pages/home_page.dart';
 import 'package:invest_up/pages/sign_up_page.dart';
 import 'package:invest_up/pages/recover_password.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const InvestUp());
 }
 
@@ -58,17 +64,49 @@ class _LoginState extends State<Login> {
       _alertUser('Senhas precisam conter ao menos seis caracteres');
       return;
     } else {
-      //Aqui incluir a busca pelo usuário no firebase e mais ifs pra caso ache ou não
+      validateLogin(emailText, passwordText);
+    }
+  }
+
+  Future<Map<String, dynamic>?> resultLogin(
+    String email,
+    String password,
+  ) async {
+    final result = await FirebaseFirestore.instance
+        .collection('users')
+        .where('email', isEqualTo: email)
+        .where('senha', isEqualTo: password)
+        .get();
+
+    if (result.docs.isNotEmpty) return null;
+
+    return result.docs.first.data();
+  }
+
+  void validateLogin(String email, String password) async {
+    final userData = await resultLogin(email, password);
+
+    if (userData != null) {
+      if (!mounted) return;
+
+      String cpf = userData['cpf'];
+      String name = userData['nome'];
+      String email = userData['email'];
+
       Navigator.pushReplacement(
         context,
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) =>
-              const HomePage(),
+              HomePage(email: email, name: name, cpf: cpf),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return FadeTransition(opacity: animation, child: child);
           },
           transitionDuration: Duration(milliseconds: 175),
         ),
+      );
+    } else {
+      _alertUser(
+        'O login informado não foi encontrado \n Verifique as informações fornecidas e tente novamente, ou faça seu cadastro.',
       );
     }
   }
