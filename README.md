@@ -3,7 +3,7 @@
 ## 👥 Integrantes
 
 * Alice Da Silva Beserra
-* Antonio Airton Rodrigues Santos
+* Antonio Airton Rodrigues Junior
 * Beatriz Costa Leme
 * Nathalia Alves Dias Alecio
 
