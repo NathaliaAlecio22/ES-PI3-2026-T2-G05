@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:invest_up/main.dart';
-
-//CONFIRMAR VERIFICAÇÕES DE TODOS OS CAMPOS
-//APLICAR MÁSCARAS EM CPF E TELEFONE
-//APLICAR MÁSCARA EM NOME (PRIMEIRAS LETRAS MAIÚSCULAS)
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:invest_up/pages/home_page.dart';
 
 class SignUp extends StatefulWidget {
   const SignUp({super.key});
@@ -33,37 +32,56 @@ class _SignUpState extends State<SignUp> {
     super.dispose();
   }
 
-  void verifySignUp() {
-    final String nameText = _nameController.text.trim();
-    final String emailText = _emailController.text.trim();
-    final String cpfText = _cpfController.text.trim();
-    final String telText = _telController.text.trim();
-    final String passText = _passController.text.trim();
-    final String passConfirmText = _passConfirmController.text.trim();
+  Future<void> verifySignUp() async {
+    final nameText = _nameController.text.trim();
+    final emailText = _emailController.text.trim();
+    final cpfText = _cpfController.text.trim();
+    final telText = _telController.text.trim();
+    final passText = _passController.text.trim();
+    final passConfirmText = _passConfirmController.text.trim();
 
-    if (nameText.isEmpty || emailText.isEmpty || cpfText.isEmpty || telText.isEmpty || passText.isEmpty || passConfirmText.isEmpty) {
-      _alertUser('É necessário preencher todos os campos da tela para realizar seu cadastro.');
+    if (nameText.isEmpty ||
+        emailText.isEmpty ||
+        cpfText.isEmpty ||
+        telText.isEmpty ||
+        passText.isEmpty ||
+        passConfirmText.isEmpty) {
+      _alertUser('Preencha todos os campos');
       return;
-    } else if (nameText.length <= 5) {
-      _alertUser('Informe seu nome completo.');
+    }
+
+    if (passText != passConfirmText) {
+      _alertUser('As senhas não coincidem');
       return;
-    } else if (!emailText.contains('@')) {
-      _alertUser('E-mail inválido.');
-      return;
-    } else if (cpfText.length < 10 || cpfText.length > 11) {
-      _alertUser('CPF inválido.');
-      return;
-    } else if (telText.length < 10 || telText.length > 16) {
-      _alertUser('Telefone inválido.\nObs.: Lembre-se de incluir o DDD antes do número.');
-      return;
-    } else if (passText.length <= 5 || passConfirmText.length <= 5) {
-      _alertUser('Senhas precisam conter ao menos seis caracteres.');
-      return;
-    } else if (passText.compareTo(passConfirmText) != 0) {
-      _alertUser('As senhas informadas não coincidem.');
-      return;
-    } else {
-      //Fazer cadastro de usuário e redirecionar pra tela home - Conexão com Firebase + Navigator.pushReplacement
+    }
+
+    try {
+      //  1. Criar usuário no Auth
+      final userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(email: emailText, password: passText);
+
+      final uid = userCredential.user!.uid;
+
+      // 2. Salvar dados no Firestore
+      await FirebaseFirestore.instance.collection('users').doc(uid).set({
+        'nome': nameText,
+        'email': emailText,
+        'cpf': cpfText,
+        'telefone': telText,
+        'saldo': 0,
+        'carteira': [],
+        'createdAt': Timestamp.now(),
+      });
+
+      // 3. Ir para Home
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomePage()),
+      );
+    } on FirebaseAuthException catch (e) {
+      _alertUser(e.message ?? 'Erro ao cadastrar');
+    } catch (e) {
+      _alertUser('Erro inesperado');
     }
   }
 

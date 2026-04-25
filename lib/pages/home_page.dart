@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:invest_up/main.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -10,221 +11,178 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final TextEditingController _emailController = TextEditingController();
+  String nome = '';
+  double saldo = 0;
 
   @override
-  void dispose() {
-    _emailController.dispose();
-
-    super.dispose();
+  void initState() {
+    super.initState();
+    carregarUsuario();
   }
 
-  void verifyEmail() {
-    final String emailText = _emailController.text.trim();
+  Future<void> carregarUsuario() async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
 
-    if (emailText.isEmpty) {
-      _alertUser('É necessário informar seu e-mail para recuperação de senha.');
-      return;
-    } else if (!emailText.contains('@')) {
-      _alertUser('E-mail inválido');
-      return;
-    } else {
-      //Enviar email de recuperação de senha - Conexão com firebase
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .get();
+
+    if (doc.exists) {
+      setState(() {
+        nome = doc['nome'];
+        saldo = (doc['saldo'] as num).toDouble();
+      });
     }
-  }
-
-  void goToLogIn() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const Login(title: 'Invest Up')),
-    );
-  }
-
-  void _alertUser(String message) {
-    showDialog<void>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Alerta'),
-          content: Text(message),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Fechar'),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF15171E),
       appBar: AppBar(
-        backgroundColor: Color.fromARGB(255, 21, 23, 30),
-        toolbarHeight: 120,
-        scrolledUnderElevation: 0.0,
-        surfaceTintColor: Colors.transparent,
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            Image.asset('assets/logo.png', height: 50),
-
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Invest Up',
-                  style: GoogleFonts.lato(
-                    textStyle: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-
-                Text(
-                  'Powered by MesclaInvest',
-                  style: GoogleFonts.lato(
-                    textStyle: const TextStyle(
-                      color: Color.fromARGB(255, 158, 158, 158),
-                      fontSize: 12,
-                      fontWeight: FontWeight.normal,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+        backgroundColor: const Color(0xFF15171E),
+        elevation: 0,
+        title: Text("Invest Up", style: GoogleFonts.lato(color: Colors.white)),
       ),
-
-      backgroundColor: Color.fromARGB(255, 21, 23, 30),
-
-      body: SingleChildScrollView(
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Center(
-              child: Container(
-                width: 350,
-                color: Color.fromARGB(255, 21, 23, 30),
-                padding: EdgeInsets.all(8),
-                child: Column(
-                  children: [
-                    SizedBox(height: 30),
-                    Text(
-                      'Home Page',
+            Text(
+              "Olá, $nome 👋",
+              style: GoogleFonts.lato(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF282B38),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Saldo disponível",
+                    style: GoogleFonts.lato(color: Colors.grey),
+                  ),
+                  const SizedBox(height: 10),
+                  FittedBox(
+                    child: Text(
+                      "R\$ $saldo",
                       style: GoogleFonts.lato(
-                        textStyle: TextStyle(color: Colors.white, fontSize: 25),
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
+                  ),
+                ],
+              ),
+            ),
 
-                    Text(
-                      'Digite seu email e enviaremos instruções para redefinir sua senha',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.lato(
-                        textStyle: TextStyle(
-                          color: Color.fromARGB(255, 158, 158, 158),
-                          fontSize: 15,
-                        ),
-                      ),
-                    ),
+            const SizedBox(height: 30),
 
-                    SizedBox(height: 50),
+            Text(
+              "Startups",
+              style: GoogleFonts.lato(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
 
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'E-mail',
-                        style: GoogleFonts.lato(
-                          textStyle: TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
-                          ),
-                        ),
-                      ),
-                    ),
+            const SizedBox(height: 10),
 
-                    SizedBox(height: 7),
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('startups')
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.data!.docs.isEmpty) {
+                    return const Center(
+                      child: Text("Nenhuma startup encontrada"),
+                    );
+                  }
 
-                    SizedBox(
-                      width: 700,
-                      height: 45,
-                      child: TextField(
-                        controller: _emailController,
-                        keyboardType: TextInputType.text,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: 'seu@email.com',
-                          filled: true,
-                          fillColor: Color.fromARGB(255, 40, 43, 56),
-                        ),
-                        style: GoogleFonts.lato(
-                          textStyle: TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
-                          ),
-                        ),
-                      ),
-                    ),
+                  final startups = snapshot.data!.docs;
 
-                    SizedBox(height: 35),
+                  return ListView.builder(
+                    itemCount: startups.length,
+                    itemBuilder: (context, index) {
+                      final data =
+                          startups[index].data() as Map<String, dynamic>;
 
-                    SizedBox(
-                      width: 700,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: verifyEmail,
-                        style: ButtonStyle(
-                          backgroundColor: WidgetStateProperty.all<Color>(
-                            Color.fromARGB(255, 117, 50, 255),
-                          ),
-                          shape:
-                              WidgetStateProperty.all<RoundedRectangleBorder>(
-                                RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(5),
-                                  side: BorderSide(
-                                    color: Color.fromARGB(255, 117, 50, 255),
-                                  ),
-                                ),
-                              ),
-                        ),
-                        child: Text(
-                          'Enviar instruções',
-                          style: GoogleFonts.lato(
-                            color: Colors.white,
-                            fontSize: 15,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    SizedBox(height: 35),
-
-                    TextButton(
-                      onPressed: goToLogIn,
-                      style: TextButton.styleFrom(
-                        backgroundColor: Color.fromARGB(255, 21, 23, 30),
-                        padding: EdgeInsets.zero,
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: Text(
-                        'Voltar para login',
-                        style: GoogleFonts.lato(
-                          color: Color.fromARGB(255, 117, 50, 255),
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                      return _startupCard(
+                        data['nome_startup'] ?? 'Startup',
+                        data['descricao'] ?? '',
+                        data['estagio'] ?? '',
+                      );
+                    },
+                  );
+                },
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _startupCard(String nome, String desc, String info) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF282B38),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  nome,
+                  style: GoogleFonts.lato(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  desc,
+                  style: GoogleFonts.lato(color: Colors.grey, fontSize: 12),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(width: 10),
+
+          Flexible(
+            // 👈 evita overflow
+            child: Text(
+              info,
+              style: GoogleFonts.lato(color: Colors.green, fontSize: 12),
+            ),
+          ),
+        ],
       ),
     );
   }
