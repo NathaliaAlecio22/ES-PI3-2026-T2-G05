@@ -4,6 +4,7 @@ import 'package:invest_up/main.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:invest_up/pages/home_page.dart';
+import 'package:invest_up/theme/app_theme.dart';
 
 class SignUp extends StatefulWidget {
   const SignUp({super.key});
@@ -128,7 +129,7 @@ class _SignUpState extends State<SignUp> {
         title: Row(
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            Image.asset('assets/logo.png', height: 50),
+            Image.asset('assets/Logo.png', height: 50),
 
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -160,323 +161,303 @@ class _SignUpState extends State<SignUp> {
         ),
       ),
 
-      backgroundColor: Color.fromARGB(255, 21, 23, 30),
+      backgroundColor: AppTheme.background,
 
-      body: SingleChildScrollView(
-        child: Center(
-          child: Column(
-            children: [
-              Container(
-                width: 350,
-                color: Color.fromARGB(255, 21, 23, 30),
-                padding: EdgeInsets.all(8),
-                child: Column(
-                  children: [
-                    SizedBox(height: 5),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [AppTheme.backgroundAlt, AppTheme.background],
+          ),
+        ),
+        child: SingleChildScrollView(
+          child: Center(
+            child: Column(
+              children: [
+                Container(
+                  width: 350,
+                  color: Colors.transparent,
+                  padding: const EdgeInsets.all(8),
+                  child: Column(
+                    children: [
+                      SizedBox(height: 5),
 
-                    Text(
-                      'Criar conta',
-                      style: GoogleFonts.lato(
-                        textStyle: TextStyle(color: Colors.white, fontSize: 25),
-                      ),
-                    ),
-
-                    Text(
-                      'Preencha seus dados para começar',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.lato(
-                        textStyle: TextStyle(
-                          color: Color.fromARGB(255, 158, 158, 158),
-                          fontSize: 15,
-                        ),
-                      ),
-                    ),
-
-                    SizedBox(height: 20),
-
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Nome completo *',
+                      Text(
+                        'Criar conta',
                         style: GoogleFonts.lato(
                           textStyle: TextStyle(
                             color: Colors.white,
+                            fontSize: 25,
+                          ),
+                        ),
+                      ),
+
+                      Text(
+                        'Preencha seus dados para começar',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.lato(
+                          textStyle: TextStyle(
+                            color: Color.fromARGB(255, 158, 158, 158),
                             fontSize: 15,
                           ),
                         ),
                       ),
-                    ),
 
-                    SizedBox(height: 7),
+                      SizedBox(height: 20),
 
-                    SizedBox(
-                      width: 700,
-                      height: 40,
-                      child: TextField(
-                        controller: _nameController,
-                        keyboardType: TextInputType.text,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: 'Seu nome completo',
-                          filled: true,
-                          fillColor: Color.fromARGB(255, 40, 43, 56),
-                        ),
-                        style: GoogleFonts.lato(
-                          textStyle: TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Nome completo *',
+                          style: GoogleFonts.lato(
+                            textStyle: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                            ),
                           ),
                         ),
                       ),
-                    ),
 
-                    SizedBox(height: 15),
+                      SizedBox(height: 7),
 
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'E-mail *',
-                        style: GoogleFonts.lato(
-                          textStyle: TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
+                      SizedBox(
+                        width: 700,
+                        height: 40,
+                        child: TextField(
+                          controller: _nameController,
+                          keyboardType: TextInputType.text,
+                          decoration: const InputDecoration(
+                            labelText: 'Seu nome completo',
+                          ),
+                          style: GoogleFonts.lato(
+                            textStyle: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                            ),
                           ),
                         ),
                       ),
-                    ),
 
-                    SizedBox(height: 7),
+                      SizedBox(height: 15),
 
-                    SizedBox(
-                      width: 700,
-                      height: 40,
-                      child: TextField(
-                        controller: _emailController,
-                        keyboardType: TextInputType.text,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: 'seu@email.com',
-                          filled: true,
-                          fillColor: Color.fromARGB(255, 40, 43, 56),
-                        ),
-                        style: GoogleFonts.lato(
-                          textStyle: TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'E-mail *',
+                          style: GoogleFonts.lato(
+                            textStyle: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                            ),
                           ),
                         ),
                       ),
-                    ),
 
-                    SizedBox(height: 15),
+                      SizedBox(height: 7),
 
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'CPF *',
-                        style: GoogleFonts.lato(
-                          textStyle: TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
+                      SizedBox(
+                        width: 700,
+                        height: 40,
+                        child: TextField(
+                          controller: _emailController,
+                          keyboardType: TextInputType.text,
+                          decoration: const InputDecoration(
+                            labelText: 'seu@email.com',
+                          ),
+                          style: GoogleFonts.lato(
+                            textStyle: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                            ),
                           ),
                         ),
                       ),
-                    ),
 
-                    SizedBox(height: 7),
+                      SizedBox(height: 15),
 
-                    SizedBox(
-                      width: 700,
-                      height: 40,
-                      child: TextField(
-                        controller: _cpfController,
-                        keyboardType: TextInputType.text,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: '000.000.000-00',
-                          filled: true,
-                          fillColor: Color.fromARGB(255, 40, 43, 56),
-                        ),
-                        style: GoogleFonts.lato(
-                          textStyle: TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'CPF *',
+                          style: GoogleFonts.lato(
+                            textStyle: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                            ),
                           ),
                         ),
                       ),
-                    ),
 
-                    SizedBox(height: 15),
+                      SizedBox(height: 7),
 
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Telefone celular *',
-                        style: GoogleFonts.lato(
-                          textStyle: TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
+                      SizedBox(
+                        width: 700,
+                        height: 40,
+                        child: TextField(
+                          controller: _cpfController,
+                          keyboardType: TextInputType.text,
+                          decoration: const InputDecoration(
+                            labelText: '000.000.000-00',
+                          ),
+                          style: GoogleFonts.lato(
+                            textStyle: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                            ),
                           ),
                         ),
                       ),
-                    ),
 
-                    SizedBox(height: 7),
+                      SizedBox(height: 15),
 
-                    SizedBox(
-                      width: 700,
-                      height: 40,
-                      child: TextField(
-                        controller: _telController,
-                        keyboardType: TextInputType.text,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: '(00) 00000-0000',
-                          filled: true,
-                          fillColor: Color.fromARGB(255, 40, 43, 56),
-                        ),
-                        style: GoogleFonts.lato(
-                          textStyle: TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Telefone celular *',
+                          style: GoogleFonts.lato(
+                            textStyle: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                            ),
                           ),
                         ),
                       ),
-                    ),
 
-                    SizedBox(height: 15),
+                      SizedBox(height: 7),
 
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Senha *',
-                        style: GoogleFonts.lato(
-                          textStyle: TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
+                      SizedBox(
+                        width: 700,
+                        height: 40,
+                        child: TextField(
+                          controller: _telController,
+                          keyboardType: TextInputType.text,
+                          decoration: const InputDecoration(
+                            labelText: '(00) 00000-0000',
+                          ),
+                          style: GoogleFonts.lato(
+                            textStyle: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                            ),
                           ),
                         ),
                       ),
-                    ),
 
-                    SizedBox(height: 7),
+                      SizedBox(height: 15),
 
-                    SizedBox(
-                      width: 700,
-                      height: 40,
-                      child: TextField(
-                        controller: _passController,
-                        obscureText: true,
-                        keyboardType: TextInputType.text,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: '......',
-                          filled: true,
-                          fillColor: Color.fromARGB(255, 40, 43, 56),
-                        ),
-                        style: GoogleFonts.lato(
-                          textStyle: TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Senha *',
+                          style: GoogleFonts.lato(
+                            textStyle: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                            ),
                           ),
                         ),
                       ),
-                    ),
 
-                    SizedBox(height: 15),
+                      SizedBox(height: 7),
 
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Confirmar senha *',
-                        style: GoogleFonts.lato(
-                          textStyle: TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
+                      SizedBox(
+                        width: 700,
+                        height: 40,
+                        child: TextField(
+                          controller: _passController,
+                          obscureText: true,
+                          keyboardType: TextInputType.text,
+                          decoration: const InputDecoration(
+                            labelText: '******',
+                          ),
+                          style: GoogleFonts.lato(
+                            textStyle: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                            ),
                           ),
                         ),
                       ),
-                    ),
 
-                    SizedBox(height: 7),
+                      SizedBox(height: 15),
 
-                    SizedBox(
-                      width: 700,
-                      height: 40,
-                      child: TextField(
-                        controller: _passConfirmController,
-                        obscureText: true,
-                        keyboardType: TextInputType.text,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: '......',
-                          filled: true,
-                          fillColor: Color.fromARGB(255, 40, 43, 56),
-                        ),
-                        style: GoogleFonts.lato(
-                          textStyle: TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Confirmar senha *',
+                          style: GoogleFonts.lato(
+                            textStyle: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                            ),
                           ),
                         ),
                       ),
-                    ),
 
-                    SizedBox(height: 35),
+                      SizedBox(height: 7),
 
-                    SizedBox(
-                      width: 700,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: verifySignUp,
-                        style: ButtonStyle(
-                          backgroundColor: WidgetStateProperty.all<Color>(
-                            Color.fromARGB(255, 117, 50, 255),
+                      SizedBox(
+                        width: 700,
+                        height: 40,
+                        child: TextField(
+                          controller: _passConfirmController,
+                          obscureText: true,
+                          keyboardType: TextInputType.text,
+                          decoration: const InputDecoration(
+                            labelText: '******',
                           ),
-                          shape:
-                              WidgetStateProperty.all<RoundedRectangleBorder>(
-                                RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(5),
-                                  side: BorderSide(
-                                    color: Color.fromARGB(255, 117, 50, 255),
-                                  ),
-                                ),
-                              ),
+                          style: GoogleFonts.lato(
+                            textStyle: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      SizedBox(height: 35),
+
+                      SizedBox(
+                        width: 700,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: verifySignUp,
+                          child: Text(
+                            'Criar conta',
+                            style: GoogleFonts.lato(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      SizedBox(height: 35),
+
+                      TextButton(
+                        onPressed: goToLogIn,
+                        style: TextButton.styleFrom(
+                          backgroundColor: Color.fromARGB(255, 21, 23, 30),
+                          padding: EdgeInsets.zero,
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
                         child: Text(
-                          'Enviar instruções',
+                          'Voltar para login',
                           style: GoogleFonts.lato(
-                            color: Colors.white,
-                            fontSize: 15,
+                            color: AppTheme.accent,
+                            fontSize: 13,
                           ),
                         ),
                       ),
-                    ),
 
-                    SizedBox(height: 35),
-
-                    TextButton(
-                      onPressed: goToLogIn,
-                      style: TextButton.styleFrom(
-                        backgroundColor: Color.fromARGB(255, 21, 23, 30),
-                        padding: EdgeInsets.zero,
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: Text(
-                        'Voltar para login',
-                        style: GoogleFonts.lato(
-                          color: Color.fromARGB(255, 117, 50, 255),
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-
-                    SizedBox(height: 35),
-                  ],
+                      SizedBox(height: 35),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
