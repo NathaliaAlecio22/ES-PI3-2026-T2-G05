@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:invest_up/main.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -51,6 +52,21 @@ class _SignUpState extends State<SignUp> {
       return;
     }
 
+    if (!_isValidEmail(emailText)) {
+      _alertUser('E-mail inválido');
+      return;
+    }
+
+    if (!_isValidCPF(cpfText)) {
+      _alertUser('CPF inválido');
+      return;
+    }
+
+    if (!_isValidPhone(telText)) {
+      _alertUser('Telefone inválido');
+      return;
+    }
+
     if (passText != passConfirmText) {
       _alertUser('As senhas não coincidem');
       return;
@@ -84,6 +100,51 @@ class _SignUpState extends State<SignUp> {
     } catch (e) {
       _alertUser('Erro inesperado');
     }
+  }
+
+  bool _isValidEmail(String email) {
+    final normalized = email.trim().toLowerCase();
+    final emailRegex = RegExp(r'^[\w\.-]+@[\w\.-]+\.\w{2,}$');
+    return emailRegex.hasMatch(normalized);
+  }
+
+  bool _isValidPhone(String phone) {
+    final numbers = phone.replaceAll(RegExp(r'[^0-9]'), '');
+    if (numbers.length < 10 || numbers.length > 11) {
+      return false;
+    }
+    if (RegExp(r'^(\d)\1*$').hasMatch(numbers)) {
+      return false;
+    }
+    return true;
+  }
+
+  bool _isValidCPF(String cpf) {
+    final numbers = cpf.replaceAll(RegExp(r'[^0-9]'), '');
+
+    if (numbers.length != 11) {
+      return false;
+    }
+
+    if (RegExp(r'^(\d)\1*$').hasMatch(numbers)) {
+      return false;
+    }
+
+    final digits = numbers.split('').map(int.parse).toList();
+
+    int calcDigit(int length) {
+      var sum = 0;
+      for (var i = 0; i < length; i++) {
+        sum += digits[i] * (length + 1 - i);
+      }
+      final result = (sum * 10) % 11;
+      return result == 10 ? 0 : result;
+    }
+
+    final d1 = calcDigit(9);
+    final d2 = calcDigit(10);
+
+    return digits[9] == d1 && digits[10] == d2;
   }
 
   void goToLogIn() {
@@ -122,14 +183,14 @@ class _SignUpState extends State<SignUp> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Color.fromARGB(255, 21, 23, 30),
+        backgroundColor: AppTheme.background,
         toolbarHeight: 120,
         scrolledUnderElevation: 0.0,
         surfaceTintColor: Colors.transparent,
         title: Row(
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            Image.asset('assets/Logo.png', height: 50),
+            Image.asset('assets/Logo.png', height: 72),
 
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -262,6 +323,9 @@ class _SignUpState extends State<SignUp> {
                         child: TextField(
                           controller: _emailController,
                           keyboardType: TextInputType.text,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.deny(RegExp(r'\s')),
+                          ],
                           decoration: const InputDecoration(
                             labelText: 'seu@email.com',
                           ),
@@ -297,6 +361,10 @@ class _SignUpState extends State<SignUp> {
                         child: TextField(
                           controller: _cpfController,
                           keyboardType: TextInputType.text,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(11),
+                          ],
                           decoration: const InputDecoration(
                             labelText: '000.000.000-00',
                           ),
@@ -332,6 +400,10 @@ class _SignUpState extends State<SignUp> {
                         child: TextField(
                           controller: _telController,
                           keyboardType: TextInputType.text,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(11),
+                          ],
                           decoration: const InputDecoration(
                             labelText: '(00) 00000-0000',
                           ),

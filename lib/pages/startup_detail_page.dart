@@ -25,6 +25,11 @@ class StartupDetailPage extends StatelessWidget {
     return value.toString();
   }
 
+  static List<Map<String, dynamic>> _asMapList(dynamic value) {
+    final list = value as List<dynamic>? ?? [];
+    return list.whereType<Map>().map((e) => e.cast<String, dynamic>()).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -79,15 +84,17 @@ class StartupDetailPage extends StatelessWidget {
                 fallback: 'Sem descrição',
               );
               final video = _asText(data['video_demo'], fallback: 'Sem vídeo');
+              final sumarioExecutivo = _asText(
+                data['sumario_executivo'],
+                fallback: 'Sem sumário executivo',
+              );
               final tokensEmitidos = _toDouble(data['tokens_emitidos']);
               final capitalAportado = _toDouble(data['capital_aportado']);
               final precoToken = _toDouble(data['preco_token']);
 
-              final estrutura =
-                  (data['estrutura_societaria'] as List<dynamic>? ?? [])
-                      .whereType<Map>()
-                      .map((e) => e.cast<String, dynamic>())
-                      .toList();
+              final estrutura = _asMapList(data['estrutura_societaria']);
+
+              final faqs = _asMapList(data['faqs_publicas']);
 
               final mentores =
                   (data['mentores_conselho'] as List<dynamic>? ?? [])
@@ -114,6 +121,14 @@ class StartupDetailPage extends StatelessWidget {
                     title: 'Descrição',
                     child: Text(
                       descricao,
+                      style: GoogleFonts.lato(color: AppTheme.textSecondary),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _infoCard(
+                    title: 'Sumário executivo',
+                    child: Text(
+                      sumarioExecutivo,
                       style: GoogleFonts.lato(color: AppTheme.textSecondary),
                     ),
                   ),
@@ -189,6 +204,52 @@ class StartupDetailPage extends StatelessWidget {
                                   ),
                                 )
                                 .toList(),
+                          ),
+                  ),
+                  const SizedBox(height: 12),
+                  _infoCard(
+                    title: 'Perguntas frequentes',
+                    child: faqs.isEmpty
+                        ? Text(
+                            'Sem perguntas públicas',
+                            style: GoogleFonts.lato(
+                              color: AppTheme.textSecondary,
+                            ),
+                          )
+                        : Column(
+                            children: faqs.map((item) {
+                              final pergunta = _asText(
+                                item['pergunta'],
+                                fallback: 'Pergunta',
+                              );
+                              final resposta = _asText(
+                                item['resposta'],
+                                fallback: 'Sem resposta',
+                              );
+
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      pergunta,
+                                      style: GoogleFonts.lato(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      resposta,
+                                      style: GoogleFonts.lato(
+                                        color: AppTheme.textSecondary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
                           ),
                   ),
                   const SizedBox(height: 12),
