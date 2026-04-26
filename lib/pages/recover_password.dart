@@ -124,13 +124,13 @@ class _RecoverPasswordState extends State<RecoverPassword> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Color.fromARGB(255, 21, 23, 30),
+        backgroundColor: AppTheme.background,
         toolbarHeight: isCompact ? 96 : 120,
         scrolledUnderElevation: 0.0,
         surfaceTintColor: Colors.transparent,
         title: Row(
           children: [
-            Image.asset('assets/Logo.png', height: isCompact ? 42 : 50),
+            Image.asset('assets/Logo.png', height: isCompact ? 54 : 68),
             const SizedBox(width: 12),
             Expanded(
               child: Column(

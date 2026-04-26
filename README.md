@@ -60,3 +60,37 @@ https://www.figma.com/make/4V1c4zootORBRlYjwKvvAf/Investment-App-Design?p=f&t=J7
 
 <img width="1485" height="852" alt="image" src="https://github.com/user-attachments/assets/4c2f1cea-36f2-441f-a89f-2ca5bd501c96" />
 
+---
+
+## ✅ Evidencias de Organizacao Tecnica
+
+- Repositorio versionado com Git e hospedado no GitHub.
+- Branches e commits registrados durante o desenvolvimento.
+- Acompanhamento de tarefas via GitHub Projects e Issues.
+- Documentacao atualizada neste README.
+
+---
+
+## ▶️ Como Executar o Projeto
+
+1) Instale o Flutter e configure o ambiente.
+2) No diretório do projeto, instale dependencias:
+
+```
+flutter pub get
+```
+
+3) Rode o app:
+
+```
+flutter run
+```
+
+---
+
+## 🔥 Firebase
+
+O projeto utiliza Firebase para autenticacao e dados das startups.
+Certifique-se de configurar o arquivo `google-services.json` (Android)
+ou `GoogleService-Info.plist` (iOS), alem do `firebase_options.dart`.
+
