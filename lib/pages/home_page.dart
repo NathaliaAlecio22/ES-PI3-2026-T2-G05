@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:invest_up/pages/startup_catalog_page.dart';
 import 'package:invest_up/theme/app_theme.dart';
 
 class HomePage extends StatefulWidget {
@@ -64,7 +65,11 @@ class _HomePageState extends State<HomePage> {
                   const SizedBox(height: 14),
                   _quickActionsRow(),
                   const SizedBox(height: 18),
-                  _sectionTitle('Maiores altas', 'Ver todas'),
+                  _sectionTitle(
+                    'Maiores altas',
+                    'Ver todas',
+                    onTap: _openCatalog,
+                  ),
                   const SizedBox(height: 10),
                   if (snapshot.connectionState == ConnectionState.waiting)
                     const Padding(
@@ -276,6 +281,7 @@ class _HomePageState extends State<HomePage> {
             icon: Icons.trending_up_rounded,
             title: 'Explorar Startups',
             iconColor: AppTheme.accent,
+            onTap: _openCatalog,
           ),
         ),
         const SizedBox(width: 10),
@@ -284,6 +290,7 @@ class _HomePageState extends State<HomePage> {
             icon: Icons.north_east_rounded,
             title: 'Balcão de Tokens',
             iconColor: AppTheme.cyan,
+            onTap: _openCatalog,
           ),
         ),
       ],
@@ -294,34 +301,39 @@ class _HomePageState extends State<HomePage> {
     required IconData icon,
     required String title,
     required Color iconColor,
+    required VoidCallback onTap,
   }) {
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 14, 14, 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CircleAvatar(
-              radius: 16,
-              backgroundColor: iconColor.withAlpha(38),
-              child: Icon(icon, size: 18, color: iconColor),
-            ),
-            const SizedBox(height: 26),
-            Text(
-              title,
-              style: GoogleFonts.lato(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-                fontSize: 16,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CircleAvatar(
+                radius: 16,
+                backgroundColor: iconColor.withAlpha(38),
+                child: Icon(icon, size: 18, color: iconColor),
               ),
-            ),
-          ],
+              const SizedBox(height: 26),
+              Text(
+                title,
+                style: GoogleFonts.lato(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _sectionTitle(String title, String action) {
+  Widget _sectionTitle(String title, String action, {VoidCallback? onTap}) {
     return Row(
       children: [
         Expanded(
@@ -334,15 +346,24 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
         ),
-        Text(
-          action,
-          style: GoogleFonts.lato(
-            color: AppTheme.accent,
-            fontWeight: FontWeight.w600,
+        InkWell(
+          onTap: onTap,
+          child: Text(
+            action,
+            style: GoogleFonts.lato(
+              color: AppTheme.accent,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ],
     );
+  }
+
+  void _openCatalog() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const StartupCatalogPage()));
   }
 
   Widget _marketCard({
@@ -478,6 +499,11 @@ class _HomePageState extends State<HomePage> {
           setState(() {
             currentTab = index;
           });
+
+          if (index == 1) {
+            _openCatalog();
+            return;
+          }
 
           if (index == 4) {
             FirebaseAuth.instance.signOut();
