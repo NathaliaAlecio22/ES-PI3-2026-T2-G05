@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:invest_up/pages/startup_catalog_page.dart';
+import 'package:invest_up/pages/token_exchange_page.dart';
+import 'package:invest_up/pages/wallet_page.dart';
 import 'package:invest_up/theme/app_theme.dart';
 
 class HomePage extends StatefulWidget {
@@ -13,113 +15,104 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  String nome = '';
-  double saldo = 0;
   String estagioSelecionado = 'Todos';
   int currentTab = 0;
 
   @override
-  void initState() {
-    super.initState();
-    carregarUsuario();
-  }
-
-  Future<void> carregarUsuario() async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-
-    final doc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .get();
-
-    if (doc.exists) {
-      setState(() {
-        nome = doc['nome'];
-        saldo = (doc['saldo'] as num).toDouble();
-      });
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+
     return Scaffold(
       backgroundColor: AppTheme.background,
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('startups').snapshots(),
-        builder: (context, snapshot) {
-          final docs = snapshot.data?.docs ?? [];
+      body: StreamBuilder<DocumentSnapshot>(
+        stream: user == null
+            ? null
+            : FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots(),
+        builder: (context, userSnapshot) {
+          final userData =
+              (userSnapshot.data?.data() as Map<String, dynamic>?) ?? {};
+          final nome = (userData['nome'] ?? '').toString();
+          final saldo = (userData['saldo'] as num?)?.toDouble() ?? 0;
 
-          return Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [AppTheme.backgroundAlt, AppTheme.background],
-              ),
-            ),
-            child: SafeArea(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 90),
-                children: [
-                  _headerCard(),
-                  const SizedBox(height: 14),
-                  _quickActionsRow(),
-                  const SizedBox(height: 18),
-                  _sectionTitle(
-                    'Maiores altas',
-                    'Ver todas',
-                    onTap: _openCatalog,
+          return StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance.collection('startups').snapshots(),
+            builder: (context, snapshot) {
+              final docs = snapshot.data?.docs ?? [];
+
+              return Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [AppTheme.backgroundAlt, AppTheme.background],
                   ),
-                  const SizedBox(height: 10),
-                  if (snapshot.connectionState == ConnectionState.waiting)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 24),
-                      child: Center(child: CircularProgressIndicator()),
-                    )
-                  else if (snapshot.hasError)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 24),
-                      child: Center(
-                        child: Text(
-                          'Erro ao carregar startups',
-                          style: GoogleFonts.lato(color: AppTheme.danger),
-                        ),
+                ),
+                child: SafeArea(
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 90),
+                    children: [
+                      _headerCard(nome: nome, saldo: saldo),
+                      const SizedBox(height: 14),
+                      _quickActionsRow(),
+                      const SizedBox(height: 18),
+                      _sectionTitle(
+                        'Maiores altas',
+                        'Ver todas',
+                        onTap: _openCatalog,
                       ),
-                    )
-                  else
-                    ...docs.take(3).map((doc) {
-                      final data = doc.data() as Map<String, dynamic>;
-                      final nomeStartup = (data['nome_startup'] ?? 'Startup')
-                          .toString();
-                      final desc = (data['descricao'] ?? '').toString();
-                      final preco = ((data['preco_token'] ?? 0) as num)
-                          .toDouble();
+                      const SizedBox(height: 10),
+                      if (snapshot.connectionState == ConnectionState.waiting)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 24),
+                          child: Center(child: CircularProgressIndicator()),
+                        )
+                      else if (snapshot.hasError)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 24),
+                          child: Center(
+                            child: Text(
+                              'Erro ao carregar startups',
+                              style: GoogleFonts.lato(color: AppTheme.danger),
+                            ),
+                          ),
+                        )
+                      else
+                        ...docs.take(3).map((doc) {
+                          final data = doc.data() as Map<String, dynamic>;
+                          final nomeStartup =
+                              (data['nome_startup'] ?? 'Startup').toString();
+                          final desc = (data['descricao'] ?? '').toString();
+                          final preco = ((data['preco_token'] ?? 0) as num)
+                              .toDouble();
 
-                      return _marketCard(
-                        nome: nomeStartup,
-                        setor: desc.isEmpty ? 'Setor não informado' : desc,
-                        preco: preco,
-                        variacao: '+${(1.2 + (preco % 3)).toStringAsFixed(2)}%',
-                      );
-                    }),
-                  const SizedBox(height: 18),
-                  _sectionTitle('Transações recentes', 'Ver todas'),
-                  const SizedBox(height: 10),
-                  _transactionCard(
-                    startup: 'TechHealth',
-                    detalhe: 'Compra · 500 tokens',
-                    valor: '-R\$ 7.000,00',
-                    data: '14/02/2024',
+                          return _marketCard(
+                            nome: nomeStartup,
+                            setor: desc.isEmpty ? 'Setor não informado' : desc,
+                            preco: preco,
+                            variacao:
+                                '+${(1.2 + (preco % 3)).toStringAsFixed(2)}%',
+                          );
+                        }),
+                      const SizedBox(height: 18),
+                      _sectionTitle('Transações recentes', 'Ver todas'),
+                      const SizedBox(height: 10),
+                      _transactionCard(
+                        startup: 'TechHealth',
+                        detalhe: 'Compra · 500 tokens',
+                        valor: '-R\$ 7.000,00',
+                        data: '14/02/2024',
+                      ),
+                      _transactionCard(
+                        startup: 'EduTech Brasil',
+                        detalhe: 'Compra · 300 tokens',
+                        valor: '-R\$ 6.000,00',
+                        data: '29/02/2024',
+                      ),
+                    ],
                   ),
-                  _transactionCard(
-                    startup: 'EduTech Brasil',
-                    detalhe: 'Compra · 300 tokens',
-                    valor: '-R\$ 6.000,00',
-                    data: '29/02/2024',
-                  ),
-                ],
-              ),
-            ),
+                ),
+              );
+            },
           );
         },
       ),
@@ -144,7 +137,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _headerCard() {
+  Widget _headerCard({required String nome, required double saldo}) {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
@@ -237,7 +230,7 @@ class _HomePageState extends State<HomePage> {
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                    onPressed: () {},
+                    onPressed: _openWallet,
                     child: Text(
                       '+   Adicionar saldo',
                       style: GoogleFonts.lato(fontWeight: FontWeight.w700),
@@ -290,7 +283,7 @@ class _HomePageState extends State<HomePage> {
             icon: Icons.north_east_rounded,
             title: 'Balcão de Tokens',
             iconColor: AppTheme.cyan,
-            onTap: _openCatalog,
+            onTap: _openTokenExchange,
           ),
         ),
       ],
@@ -364,6 +357,18 @@ class _HomePageState extends State<HomePage> {
     Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (_) => const StartupCatalogPage()));
+  }
+
+  void _openTokenExchange() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const TokenExchangePage()));
+  }
+
+  void _openWallet() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const WalletPage()),
+    );
   }
 
   Widget _marketCard({
@@ -502,6 +507,11 @@ class _HomePageState extends State<HomePage> {
 
           if (index == 1) {
             _openCatalog();
+            return;
+          }
+
+          if (index == 2) {
+            _openTokenExchange();
             return;
           }
 

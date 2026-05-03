@@ -1,12 +1,30 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:invest_up/services/functions_api.dart';
 import 'package:invest_up/theme/app_theme.dart';
 
-class StartupDetailPage extends StatelessWidget {
+class StartupDetailPage extends StatefulWidget {
   const StartupDetailPage({super.key, required this.startupId});
 
   final String startupId;
+
+  @override
+  State<StartupDetailPage> createState() => _StartupDetailPageState();
+}
+
+class _StartupDetailPageState extends State<StartupDetailPage> {
+  final TextEditingController _quantidadeController = TextEditingController();
+  final TextEditingController _precoController = TextEditingController();
+  bool _isSubmitting = false;
+  bool _prefilledPrice = false;
+
+  @override
+  void dispose() {
+    _quantidadeController.dispose();
+    _precoController.dispose();
+    super.dispose();
+  }
 
   static double _toDouble(dynamic value) {
     if (value is num) {
@@ -46,7 +64,7 @@ class StartupDetailPage extends StatelessWidget {
           child: StreamBuilder<DocumentSnapshot>(
             stream: FirebaseFirestore.instance
                 .collection('startups')
-                .doc(startupId)
+                .doc(widget.startupId)
                 .snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -101,6 +119,11 @@ class StartupDetailPage extends StatelessWidget {
                       .map((e) => e.toString())
                       .toList();
 
+              if (!_prefilledPrice && precoToken > 0) {
+                _precoController.text = precoToken.toStringAsFixed(2);
+                _prefilledPrice = true;
+              }
+
               return ListView(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                 children: [
@@ -116,6 +139,8 @@ class StartupDetailPage extends StatelessWidget {
                     tokensDisponiveis: tokensEmitidos,
                     capitalAportado: capitalAportado,
                   ),
+                  const SizedBox(height: 12),
+                  _buyOfferCard(precoToken: precoToken),
                   const SizedBox(height: 12),
                   _infoCard(
                     title: 'Descrição',
@@ -369,6 +394,73 @@ class StartupDetailPage extends StatelessWidget {
     );
   }
 
+  Widget _buyOfferCard({required double precoToken}) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Comprar tokens',
+              style: GoogleFonts.lato(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                fontSize: 22,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Quantidade',
+              style: GoogleFonts.lato(color: AppTheme.textSecondary),
+            ),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _quantidadeController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(hintText: '0'),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Preco por token',
+              style: GoogleFonts.lato(color: AppTheme.textSecondary),
+            ),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _precoController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                hintText: precoToken > 0
+                    ? precoToken.toStringAsFixed(2)
+                    : '0.00',
+              ),
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _isSubmitting ? null : _submitBuyOffer,
+                child: _isSubmitting
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(
+                        'Criar oferta de compra',
+                        style: GoogleFonts.lato(fontWeight: FontWeight.w700),
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _metric({required String label, required String value}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -407,6 +499,52 @@ class StartupDetailPage extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Future<void> _submitBuyOffer() async {
+    final quantidade = _parseNumber(_quantidadeController.text);
+    final precoUnitario = _parseNumber(_precoController.text);
+    if (quantidade == null || quantidade <= 0) {
+      _showMessage('Informe uma quantidade valida');
+      return;
+    }
+    if (precoUnitario == null || precoUnitario <= 0) {
+      _showMessage('Informe um preco valido');
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      await FunctionsApi.createBuyOffer(
+        startupId: widget.startupId,
+        quantidade: quantidade,
+        precoUnitario: precoUnitario,
+      );
+      _quantidadeController.clear();
+      _showMessage('Oferta de compra criada.');
+    } catch (_) {
+      _showMessage('Nao foi possivel criar a oferta.');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
+  }
+
+  double? _parseNumber(String value) {
+    final cleaned = value.replaceAll('.', '').replaceAll(',', '.');
+    return double.tryParse(cleaned);
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
     );
   }
 }
