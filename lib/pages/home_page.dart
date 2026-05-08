@@ -1,107 +1,436 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:invest_up/main.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:invest_up/pages/startup_catalog_page.dart';
+import 'package:invest_up/pages/token_exchange_page.dart';
+import 'package:invest_up/pages/wallet_page.dart';
+import 'package:invest_up/theme/app_theme.dart';
 
 class HomePage extends StatefulWidget {
-  final String email;
-  final String name;
-  final String cpf;
-
-  const HomePage({
-    super.key, 
-    required this.email,
-    required this.name,
-    required this.cpf,
-  });
+  const HomePage({super.key});
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  final TextEditingController _emailController = TextEditingController();
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-
-    super.dispose();
-  }
-
-  void verifyEmail() {
-    final String emailText = _emailController.text.trim();
-
-    if (emailText.isEmpty) {
-      _alertUser('É necessário informar seu e-mail para recuperação de senha.');
-      return;
-    } else if (!emailText.contains('@')) {
-      _alertUser('E-mail inválido');
-      return;
-    } else {
-      //Enviar email de recuperação de senha - Conexão com firebase
-    }
-  }
-
-  void goToLogIn() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const Login(title: 'Invest Up')),
-    );
-  }
-
-  void _alertUser(String message) {
-    showDialog<void>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Alerta'),
-          content: Text(message),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Fechar'),
-            ),
-          ],
-        );
-      },
-    );
-  }
+  String estagioSelecionado = 'Todos';
+  int currentTab = 0;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Color.fromARGB(255, 21, 23, 30),
-        toolbarHeight: 120,
-        scrolledUnderElevation: 0.0,
-        surfaceTintColor: Colors.transparent,
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            Image.asset('assets/logo.png', height: 50),
+    final user = FirebaseAuth.instance.currentUser;
 
-            Column(
+    return Scaffold(
+      backgroundColor: AppTheme.background,
+      body: StreamBuilder<DocumentSnapshot>(
+        stream: user == null
+            ? null
+            : FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots(),
+        builder: (context, userSnapshot) {
+          final userData =
+              (userSnapshot.data?.data() as Map<String, dynamic>?) ?? {};
+          final nome = (userData['nome'] ?? '').toString();
+          final saldo = (userData['saldo'] as num?)?.toDouble() ?? 0;
+
+          return StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance.collection('startups').snapshots(),
+            builder: (context, snapshot) {
+              final docs = snapshot.data?.docs ?? [];
+
+              return Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [AppTheme.backgroundAlt, AppTheme.background],
+                  ),
+                ),
+                child: SafeArea(
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 90),
+                    children: [
+                      _headerCard(nome: nome, saldo: saldo),
+                      const SizedBox(height: 14),
+                      _quickActionsRow(),
+                      const SizedBox(height: 18),
+                      _sectionTitle(
+                        'Maiores altas',
+                        'Ver todas',
+                        onTap: _openCatalog,
+                      ),
+                      const SizedBox(height: 10),
+                      if (snapshot.connectionState == ConnectionState.waiting)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 24),
+                          child: Center(child: CircularProgressIndicator()),
+                        )
+                      else if (snapshot.hasError)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 24),
+                          child: Center(
+                            child: Text(
+                              'Erro ao carregar startups',
+                              style: GoogleFonts.lato(color: AppTheme.danger),
+                            ),
+                          ),
+                        )
+                      else
+                        ...docs.take(3).map((doc) {
+                          final data = doc.data() as Map<String, dynamic>;
+                          final nomeStartup =
+                              (data['nome_startup'] ?? 'Startup').toString();
+                          final desc = (data['descricao'] ?? '').toString();
+                          final preco = ((data['preco_token'] ?? 0) as num)
+                              .toDouble();
+
+                          return _marketCard(
+                            nome: nomeStartup,
+                            setor: desc.isEmpty ? 'Setor não informado' : desc,
+                            preco: preco,
+                            variacao:
+                                '+${(1.2 + (preco % 3)).toStringAsFixed(2)}%',
+                          );
+                        }),
+                      const SizedBox(height: 18),
+                      _sectionTitle('Transações recentes', 'Ver todas'),
+                      const SizedBox(height: 10),
+                      _transactionCard(
+                        startup: 'TechHealth',
+                        detalhe: 'Compra · 500 tokens',
+                        valor: '-R\$ 7.000,00',
+                        data: '14/02/2024',
+                      ),
+                      _transactionCard(
+                        startup: 'EduTech Brasil',
+                        detalhe: 'Compra · 300 tokens',
+                        valor: '-R\$ 6.000,00',
+                        data: '29/02/2024',
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF191F2D),
+          border: Border(top: BorderSide(color: Colors.white.withAlpha(20))),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Row(
+            children: [
+              _navItem(0, Icons.home_outlined, 'Início'),
+              _navItem(1, Icons.search, 'Explorar'),
+              _navItem(2, Icons.show_chart, 'Balcão'),
+              _navItem(3, Icons.pie_chart_outline, 'Portfólio'),
+              _navItem(4, Icons.settings_outlined, 'Config'),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _headerCard({required String nome, required double saldo}) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppTheme.accent, Color(0xFF36C8EF)],
+        ),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Olá,\n${nome.isEmpty ? 'Investidor' : nome}',
+                  style: GoogleFonts.lato(
+                    color: Colors.white,
+                    fontSize: 34,
+                    fontWeight: FontWeight.w700,
+                    height: 0.95,
+                  ),
+                ),
+              ),
+              const Icon(Icons.notifications_none_rounded, color: Colors.white),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withAlpha(16),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withAlpha(28)),
+            ),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Row(
+                  children: [
+                    const Icon(Icons.account_balance_wallet_outlined, size: 18),
+                    const SizedBox(width: 8),
+                    Text('Carteira', style: GoogleFonts.lato(fontSize: 16)),
+                  ],
+                ),
+                const SizedBox(height: 16),
                 Text(
-                  'Invest Up',
+                  'Saldo disponível',
+                  style: GoogleFonts.lato(color: Colors.white.withAlpha(220)),
+                ),
+                Text(
+                  'R\$ ${saldo.toStringAsFixed(2)}',
                   style: GoogleFonts.lato(
-                    textStyle: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+                    fontSize: 40,
+                    height: 1,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Divider(color: Colors.white.withAlpha(60), height: 1),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _walletMetric(
+                        label: 'Total investido',
+                        value: 'R\$ 14.440,00',
+                      ),
+                    ),
+                    Expanded(
+                      child: _walletMetric(
+                        label: 'Lucro/Prejuízo',
+                        value: '~ 11.08%',
+                        color: AppTheme.cyan,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.tonal(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: const Color(0xFF433067),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onPressed: _openWallet,
+                    child: Text(
+                      '+   Adicionar saldo',
+                      style: GoogleFonts.lato(fontWeight: FontWeight.w700),
                     ),
                   ),
                 ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-                Text(
-                  'Powered by MesclaInvest',
-                  style: GoogleFonts.lato(
-                    textStyle: const TextStyle(
-                      color: Color.fromARGB(255, 158, 158, 158),
-                      fontSize: 12,
-                      fontWeight: FontWeight.normal,
+  Widget _walletMetric({
+    required String label,
+    required String value,
+    Color color = Colors.white,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: GoogleFonts.lato(color: Colors.white70)),
+        Text(
+          value,
+          style: GoogleFonts.lato(
+            color: color,
+            fontWeight: FontWeight.w700,
+            fontSize: 24,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _quickActionsRow() {
+    return Row(
+      children: [
+        Expanded(
+          child: _quickActionCard(
+            icon: Icons.trending_up_rounded,
+            title: 'Explorar Startups',
+            iconColor: AppTheme.accent,
+            onTap: _openCatalog,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _quickActionCard(
+            icon: Icons.north_east_rounded,
+            title: 'Balcão de Tokens',
+            iconColor: AppTheme.cyan,
+            onTap: _openTokenExchange,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _quickActionCard({
+    required IconData icon,
+    required String title,
+    required Color iconColor,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CircleAvatar(
+                radius: 16,
+                backgroundColor: iconColor.withAlpha(38),
+                child: Icon(icon, size: 18, color: iconColor),
+              ),
+              const SizedBox(height: 26),
+              Text(
+                title,
+                style: GoogleFonts.lato(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _sectionTitle(String title, String action, {VoidCallback? onTap}) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            title,
+            style: GoogleFonts.lato(
+              fontSize: 30,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+          ),
+        ),
+        InkWell(
+          onTap: onTap,
+          child: Text(
+            action,
+            style: GoogleFonts.lato(
+              color: AppTheme.accent,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _openCatalog() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const StartupCatalogPage()));
+  }
+
+  void _openTokenExchange() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const TokenExchangePage()));
+  }
+
+  void _openWallet() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const WalletPage()),
+    );
+  }
+
+  Widget _marketCard({
+    required String nome,
+    required String setor,
+    required double preco,
+    required String variacao,
+  }) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                width: 48,
+                height: 48,
+                color: Colors.white10,
+                child: const Icon(Icons.image_outlined, color: Colors.white54),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    nome,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.lato(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
                     ),
+                  ),
+                  Text(
+                    setor,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.lato(color: AppTheme.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  'R\$ ${preco.toStringAsFixed(2)}',
+                  style: GoogleFonts.lato(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  variacao,
+                  style: GoogleFonts.lato(
+                    color: AppTheme.cyan,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ],
@@ -109,130 +438,104 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
+    );
+  }
 
-      backgroundColor: Color.fromARGB(255, 21, 23, 30),
-
-      body: SingleChildScrollView(
-        child: Column(
+  Widget _transactionCard({
+    required String startup,
+    required String detalhe,
+    required String valor,
+    required String data,
+  }) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
           children: [
-            Center(
-              child: Container(
-                width: 350,
-                color: Color.fromARGB(255, 21, 23, 30),
-                padding: EdgeInsets.all(8),
-                child: Column(
-                  children: [
-                    SizedBox(height: 30),
-                    Text(
-                      'Home Page',
-                      style: GoogleFonts.lato(
-                        textStyle: TextStyle(color: Colors.white, fontSize: 25),
-                      ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    startup,
+                    style: GoogleFonts.lato(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
                     ),
-
-                    Text(
-                      'Olá name. Digite seu email e enviaremos instruções para redefinir sua senha',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.lato(
-                        textStyle: TextStyle(
-                          color: Color.fromARGB(255, 158, 158, 158),
-                          fontSize: 15,
-                        ),
-                      ),
-                    ),
-
-                    SizedBox(height: 50),
-
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'E-mail',
-                        style: GoogleFonts.lato(
-                          textStyle: TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    SizedBox(height: 7),
-
-                    SizedBox(
-                      width: 700,
-                      height: 45,
-                      child: TextField(
-                        controller: _emailController,
-                        keyboardType: TextInputType.text,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: 'seu@email.com',
-                          filled: true,
-                          fillColor: Color.fromARGB(255, 40, 43, 56),
-                        ),
-                        style: GoogleFonts.lato(
-                          textStyle: TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    SizedBox(height: 35),
-
-                    SizedBox(
-                      width: 700,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: verifyEmail,
-                        style: ButtonStyle(
-                          backgroundColor: WidgetStateProperty.all<Color>(
-                            Color.fromARGB(255, 117, 50, 255),
-                          ),
-                          shape:
-                              WidgetStateProperty.all<RoundedRectangleBorder>(
-                                RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(5),
-                                  side: BorderSide(
-                                    color: Color.fromARGB(255, 117, 50, 255),
-                                  ),
-                                ),
-                              ),
-                        ),
-                        child: Text(
-                          'Enviar instruções',
-                          style: GoogleFonts.lato(
-                            color: Colors.white,
-                            fontSize: 15,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    SizedBox(height: 35),
-
-                    TextButton(
-                      onPressed: goToLogIn,
-                      style: TextButton.styleFrom(
-                        backgroundColor: Color.fromARGB(255, 21, 23, 30),
-                        padding: EdgeInsets.zero,
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: Text(
-                        'Voltar para login',
-                        style: GoogleFonts.lato(
-                          color: Color.fromARGB(255, 117, 50, 255),
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    detalhe,
+                    style: GoogleFonts.lato(color: AppTheme.textSecondary),
+                  ),
+                ],
               ),
             ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  valor,
+                  style: GoogleFonts.lato(
+                    color: AppTheme.danger,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  data,
+                  style: GoogleFonts.lato(color: AppTheme.textSecondary),
+                ),
+              ],
+            ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _navItem(int index, IconData icon, String label) {
+    final selected = currentTab == index;
+    final color = selected ? AppTheme.accent : AppTheme.textSecondary;
+
+    return Expanded(
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            currentTab = index;
+          });
+
+          if (index == 1) {
+            _openCatalog();
+            return;
+          }
+
+          if (index == 2) {
+            _openTokenExchange();
+            return;
+          }
+
+          if (index == 4) {
+            FirebaseAuth.instance.signOut();
+          }
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: color, size: 22),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: GoogleFonts.lato(
+                  color: color,
+                  fontSize: 12,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

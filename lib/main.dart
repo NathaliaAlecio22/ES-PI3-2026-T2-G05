@@ -5,13 +5,15 @@ import 'package:invest_up/pages/home_page.dart';
 import 'package:invest_up/pages/sign_up_page.dart';
 import 'package:invest_up/pages/recover_password.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:invest_up/theme/app_theme.dart';
 import 'firebase_options.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-Future<void> main() async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  ///await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
   runApp(const InvestUp());
 }
 
@@ -23,6 +25,7 @@ class InvestUp extends StatelessWidget {
     return MaterialApp(
       title: 'Invest Up',
       debugShowCheckedModeBanner: false,
+      theme: AppTheme.darkTheme,
       home: const Login(title: "Invest Up"),
     );
   }
@@ -49,66 +52,27 @@ class _LoginState extends State<Login> {
     super.dispose();
   }
 
-  void verifyLogin() {
+  Future<void> verifyLogin() async {
     final String emailText = _emailController.text.trim();
     final String passwordText = _passwordController.text.trim();
 
     if (emailText.isEmpty || passwordText.isEmpty) {
-      _alertUser(
-        'É necessário informar e-mail e senha para entrar no aplicativo.',
-      );
+      _alertUser('Informe email e senha');
       return;
-    } else if (!emailText.contains('@')) {
-      _alertUser('E-mail inválido');
-      return;
-    } else if (passwordText.length <= 5) {
-      _alertUser('Senhas precisam conter ao menos seis caracteres');
-      return;
-    } else {
-      validateLogin(emailText, passwordText);
     }
-  }
 
-  Future<Map<String, dynamic>?> resultLogin(
-    String email,
-    String password,
-  ) async {
-    final result = await FirebaseFirestore.instance
-        .collection('users')
-        .where('email', isEqualTo: email)
-        .where('senha', isEqualTo: password)
-        .get();
-
-    if (result.docs.isNotEmpty) return null;
-
-    return result.docs.first.data();
-  }
-
-  void validateLogin(String email, String password) async {
-    final userData = await resultLogin(email, password);
-
-    if (userData != null) {
-      if (!mounted) return;
-
-      String cpf = userData['cpf'];
-      String name = userData['nome'];
-      String email = userData['email'];
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: emailText,
+        password: passwordText,
+      );
 
       Navigator.pushReplacement(
         context,
-        PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) =>
-              HomePage(email: email, name: name, cpf: cpf),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(opacity: animation, child: child);
-          },
-          transitionDuration: Duration(milliseconds: 175),
-        ),
+        MaterialPageRoute(builder: (_) => const HomePage()),
       );
-    } else {
-      _alertUser(
-        'O login informado não foi encontrado \n Verifique as informações fornecidas e tente novamente, ou faça seu cadastro.',
-      );
+    } on FirebaseAuthException catch (e) {
+      _alertUser(e.message ?? 'Erro ao fazer login');
     }
   }
 
@@ -159,246 +123,287 @@ class _LoginState extends State<Login> {
 
   @override
   Widget build(BuildContext context) {
+    final isCompact = MediaQuery.sizeOf(context).width < 360;
+
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Color.fromARGB(255, 21, 23, 30),
-        toolbarHeight: 120,
-        scrolledUnderElevation: 0.0,
-        surfaceTintColor: Colors.transparent,
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            Image.asset('assets/logo.png', height: 50),
+      backgroundColor: AppTheme.background,
 
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.title,
-                  style: GoogleFonts.lato(
-                    textStyle: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final horizontalPadding = constraints.maxWidth < 360 ? 12.0 : 16.0;
 
-                Text(
-                  'Powered by MesclaInvest',
-                  style: GoogleFonts.lato(
-                    textStyle: const TextStyle(
-                      color: Color.fromARGB(255, 158, 158, 158),
-                      fontSize: 12,
-                      fontWeight: FontWeight.normal,
-                    ),
-                  ),
-                ),
-              ],
+          return Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [AppTheme.backgroundAlt, AppTheme.background],
+              ),
             ),
-          ],
-        ),
-      ),
-
-      backgroundColor: Color.fromARGB(255, 21, 23, 30),
-
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Center(
-              child: Container(
-                width: 350,
-                color: Color.fromARGB(255, 21, 23, 30),
-                padding: EdgeInsets.all(8),
-                child: Column(
-                  children: [
-                    SizedBox(height: 30),
-                    Text(
-                      'Bem-vindo(a) de volta',
-                      style: GoogleFonts.lato(
-                        textStyle: TextStyle(color: Colors.white, fontSize: 25),
-                      ),
+            child: SingleChildScrollView(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 425),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: horizontalPadding,
+                      vertical: 12,
                     ),
-
-                    Text(
-                      'Entre na sua conta para continuar',
-                      style: GoogleFonts.lato(
-                        textStyle: TextStyle(
-                          color: Color.fromARGB(255, 158, 158, 158),
-                          fontSize: 15,
-                        ),
-                      ),
-                    ),
-
-                    SizedBox(height: 50),
-
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'E-mail',
-                        style: GoogleFonts.lato(
-                          textStyle: TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    SizedBox(height: 7),
-
-                    SizedBox(
-                      width: 700,
-                      height: 45,
-                      child: TextField(
-                        controller: _emailController,
-                        keyboardType: TextInputType.text,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: 'seu@email.com',
-                          filled: true,
-                          fillColor: Color.fromARGB(255, 40, 43, 56),
-                        ),
-                        style: GoogleFonts.lato(
-                          textStyle: TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    SizedBox(height: 20),
-
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Senha',
-                        style: GoogleFonts.lato(
-                          textStyle: TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    SizedBox(height: 7),
-
-                    SizedBox(
-                      width: 700,
-                      height: 45,
-                      child: TextField(
-                        obscureText: true,
-                        controller: _passwordController,
-                        keyboardType: TextInputType.text,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: '......',
-                          filled: true,
-                          fillColor: Color.fromARGB(255, 40, 43, 56),
-                        ),
-                        style: GoogleFonts.lato(
-                          textStyle: TextStyle(
-                            color: Colors.white,
-                            fontSize: 15,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    SizedBox(height: 25),
-
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        TextButton(
-                          onPressed: goToRecoverPass,
-                          style: TextButton.styleFrom(
-                            backgroundColor: Color.fromARGB(255, 21, 23, 30),
-                            padding: EdgeInsets.zero,
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          child: Text(
-                            'Esqueci minha senha',
-                            style: GoogleFonts.lato(
-                              color: Color.fromARGB(255, 117, 50, 255),
-                              fontSize: 13,
+                        SizedBox(height: isCompact ? 20 : 26),
+
+                        Row(
+                          children: [
+                            Image.asset(
+                              'assets/Logo.png',
+                              height: isCompact ? 86 : 120,
+                            ),
+                            const SizedBox(width: 8),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  widget.title,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.lato(
+                                    textStyle: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: isCompact ? 18 : 20,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  'Powered by MesclaInvest',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.lato(
+                                    textStyle: TextStyle(
+                                      color: AppTheme.textSecondary,
+                                      fontSize: isCompact ? 10 : 11,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+
+                        SizedBox(height: isCompact ? 96 : 120),
+
+                        Text(
+                          'Bem-vindo(a) de volta',
+                          style: GoogleFonts.lato(
+                            textStyle: TextStyle(
+                              color: Colors.white,
+                              fontSize: isCompact ? 22 : 25,
                             ),
                           ),
                         ),
-                      ],
-                    ),
 
-                    SizedBox(height: 25),
-
-                    SizedBox(
-                      width: 700,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: verifyLogin,
-                        style: ButtonStyle(
-                          backgroundColor: WidgetStateProperty.all<Color>(
-                            Color.fromARGB(255, 117, 50, 255),
+                        Text(
+                          'Entre na sua conta para continuar',
+                          style: GoogleFonts.lato(
+                            textStyle: TextStyle(
+                              color: Color.fromARGB(255, 158, 158, 158),
+                              fontSize: isCompact ? 14 : 15,
+                            ),
                           ),
-                          shape:
-                              WidgetStateProperty.all<RoundedRectangleBorder>(
-                                RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(5),
-                                  side: BorderSide(
-                                    color: Color.fromARGB(255, 117, 50, 255),
+                        ),
+
+                        SizedBox(height: isCompact ? 34 : 50),
+
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'E-mail',
+                            style: GoogleFonts.lato(
+                              textStyle: TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 7),
+
+                        SizedBox(
+                          width: double.infinity,
+                          height: 45,
+                          child: TextField(
+                            controller: _emailController,
+                            keyboardType: TextInputType.emailAddress,
+                            decoration: const InputDecoration(
+                              labelText: 'seu@email.com',
+                              prefixIcon: Icon(
+                                Icons.mail_outline_rounded,
+                                color: AppTheme.textSecondary,
+                              ),
+                            ),
+                            style: GoogleFonts.lato(
+                              textStyle: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Senha',
+                            style: GoogleFonts.lato(
+                              textStyle: TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 7),
+
+                        SizedBox(
+                          width: double.infinity,
+                          height: 45,
+                          child: TextField(
+                            obscureText: true,
+                            controller: _passwordController,
+                            keyboardType: TextInputType.visiblePassword,
+                            decoration: const InputDecoration(
+                              labelText: '******',
+                              prefixIcon: Icon(
+                                Icons.lock_outline_rounded,
+                                color: AppTheme.textSecondary,
+                              ),
+                            ),
+                            style: GoogleFonts.lato(
+                              textStyle: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        SizedBox(height: isCompact ? 18 : 25),
+
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton(
+                              onPressed: goToRecoverPass,
+                              style: TextButton.styleFrom(
+                                backgroundColor: Color.fromARGB(
+                                  255,
+                                  21,
+                                  23,
+                                  30,
+                                ),
+                                padding: EdgeInsets.zero,
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              child: Text(
+                                'Esqueci minha senha',
+                                style: GoogleFonts.lato(
+                                  color: AppTheme.accent,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        SizedBox(height: isCompact ? 18 : 25),
+
+                        SizedBox(
+                          width: double.infinity,
+                          height: 50,
+                          child: ElevatedButton(
+                            onPressed: verifyLogin,
+                            style: ElevatedButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: Ink(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    AppTheme.accent,
+                                    AppTheme.accentSoft,
+                                  ],
+                                ),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'Entrar',
+                                  style: GoogleFonts.lato(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 15,
                                   ),
                                 ),
                               ),
-                        ),
-                        child: Text(
-                          'Entrar',
-                          style: GoogleFonts.lato(
-                            color: Colors.white,
-                            fontSize: 15,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    SizedBox(height: 25),
-
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Não tem uma conta?',
-                          style: GoogleFonts.lato(
-                            color: Colors.white,
-                            fontSize: 13,
-                          ),
-                        ),
-                        SizedBox(width: 5),
-                        TextButton(
-                          onPressed: goToSignUp,
-                          style: TextButton.styleFrom(
-                            backgroundColor: Color.fromARGB(255, 21, 23, 30),
-                            padding: EdgeInsets.zero,
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          child: Text(
-                            'Cadastre-se',
-                            style: GoogleFonts.lato(
-                              color: Color.fromARGB(255, 117, 50, 255),
-                              fontSize: 13,
                             ),
                           ),
                         ),
+
+                        SizedBox(height: isCompact ? 18 : 25),
+
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                'Não tem uma conta?',
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.lato(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 5),
+                            TextButton(
+                              onPressed: goToSignUp,
+                              style: TextButton.styleFrom(
+                                backgroundColor: Color.fromARGB(
+                                  255,
+                                  21,
+                                  23,
+                                  30,
+                                ),
+                                padding: EdgeInsets.zero,
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              child: Text(
+                                'Cadastre-se',
+                                style: GoogleFonts.lato(
+                                  color: AppTheme.accent,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
