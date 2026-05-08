@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:invest_up/services/functions_api.dart';
 import 'package:invest_up/theme/app_theme.dart';
+import 'package:invest_up/pages/private_questions_page.dart';
 
 class StartupDetailPage extends StatefulWidget {
   const StartupDetailPage({super.key, required this.startupId});
@@ -141,6 +142,28 @@ class _StartupDetailPageState extends State<StartupDetailPage> {
                   ),
                   const SizedBox(height: 12),
                   _buyOfferCard(precoToken: precoToken),
+
+                  const SizedBox(height: 12),
+
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.question_answer),
+                      label: const Text('Perguntas privadas'),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => PrivateQuestionsPage(
+                              startupId: widget.startupId,
+                              startupName: nome,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+
                   const SizedBox(height: 12),
                   _infoCard(
                     title: 'Descrição',
@@ -543,8 +566,8 @@ class _StartupDetailPageState extends State<StartupDetailPage> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
