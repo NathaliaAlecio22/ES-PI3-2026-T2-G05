@@ -8,6 +8,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:invest_up/theme/app_theme.dart';
 import 'firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -62,10 +63,15 @@ class _LoginState extends State<Login> {
     }
 
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
+      final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: emailText,
         password: passwordText,
       );
+
+      final user = credential.user;
+      if (user != null) {
+        await _ensureUserProfile(user);
+      }
 
       Navigator.pushReplacement(
         context,
@@ -73,6 +79,44 @@ class _LoginState extends State<Login> {
       );
     } on FirebaseAuthException catch (e) {
       _alertUser(e.message ?? 'Erro ao fazer login');
+    }
+  }
+
+  Future<void> _ensureUserProfile(User user) async {
+    final ref = FirebaseFirestore.instance.collection('users').doc(user.uid);
+    final snap = await ref.get();
+
+    if (!snap.exists) {
+      await ref.set({
+        'nome': user.displayName ?? '',
+        'email': user.email ?? '',
+        'cpf': '',
+        'telefone': '',
+        'saldo': 0,
+        'carteira': [],
+        'createdAt': Timestamp.now(),
+      });
+      return;
+    }
+
+    final data = snap.data() ?? {};
+    final update = <String, dynamic>{};
+
+    if (!data.containsKey('saldo')) {
+      update['saldo'] = 0;
+    }
+    if (!data.containsKey('carteira')) {
+      update['carteira'] = [];
+    }
+    if (!data.containsKey('email') && user.email != null) {
+      update['email'] = user.email;
+    }
+    if (!data.containsKey('nome') && user.displayName != null) {
+      update['nome'] = user.displayName;
+    }
+
+    if (update.isNotEmpty) {
+      await ref.set(update, SetOptions(merge: true));
     }
   }
 
@@ -154,40 +198,45 @@ class _LoginState extends State<Login> {
                       children: [
                         SizedBox(height: isCompact ? 20 : 26),
 
-                        Row(
-                          children: [
-                            Image.asset(
-                              'assets/Logo.png',
-                              height: isCompact ? 86 : 120,
-                            ),
-                            const SizedBox(width: 8),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  widget.title,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: GoogleFonts.lato(
-                                    textStyle: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: isCompact ? 18 : 20,
-                                      fontWeight: FontWeight.bold,
+                        Align(
+                          alignment: Alignment.center,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Image.asset(
+                                'assets/Logo.png',
+                                height: isCompact ? 140 : 190,
+                              ),
+                              const SizedBox(width: 14),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    widget.title,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.lato(
+                                      textStyle: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: isCompact ? 22 : 26,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                Text(
-                                  'Powered by MesclaInvest',
-                                  overflow: TextOverflow.ellipsis,
-                                  style: GoogleFonts.lato(
-                                    textStyle: TextStyle(
-                                      color: AppTheme.textSecondary,
-                                      fontSize: isCompact ? 10 : 11,
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Powered by MesclaInvest',
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.lato(
+                                      textStyle: TextStyle(
+                                        color: AppTheme.textSecondary,
+                                        fontSize: isCompact ? 12 : 13,
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ],
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
 
                         SizedBox(height: isCompact ? 96 : 120),

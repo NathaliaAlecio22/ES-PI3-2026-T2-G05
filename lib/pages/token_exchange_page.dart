@@ -408,12 +408,13 @@ class _TokenExchangePageState extends State<TokenExchangePage> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Operacao concluida.')));
-    } catch (_) {
+    } catch (error) {
       if (!mounted) {
         return;
       }
+      final message = error.toString().replaceFirst('Exception: ', '');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nao foi possivel concluir a operacao.')),
+        SnackBar(content: Text('Nao foi possivel concluir: $message')),
       );
     } finally {
       if (mounted) {
@@ -792,8 +793,9 @@ class _CreateOfferSheetState extends State<_CreateOfferSheet> {
         const SnackBar(content: Text('Oferta registrada.')),
       );
     } catch (error) {
+      final message = error.toString().replaceFirst('Exception: ', '');
       messenger.showSnackBar(
-        const SnackBar(content: Text('Nao foi possivel criar a oferta.')),
+        SnackBar(content: Text('Nao foi possivel criar a oferta: $message')),
       );
     } finally {
       if (mounted) {

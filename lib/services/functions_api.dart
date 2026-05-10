@@ -69,7 +69,21 @@ class FunctionsApi {
     });
   }
 
+  static Future<String> getAutoResponse(String question) async {
+    final data = await _postForResponse('/qa/auto-response', {
+      'question': question,
+    });
+    return data['answer']?.toString() ?? '';
+  }
+
   static Future<void> _post(String path, Map<String, dynamic> body) async {
+    await _postForResponse(path, body);
+  }
+
+  static Future<Map<String, dynamic>> _postForResponse(
+    String path,
+    Map<String, dynamic> body,
+  ) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       throw Exception('user-not-authenticated');
@@ -86,9 +100,23 @@ class FunctionsApi {
     );
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      final data = jsonDecode(response.body) as Map<String, dynamic>?;
-      final error = data?['error']?.toString() ?? 'request-failed';
+      String error = 'request-failed';
+      try {
+        final data = jsonDecode(response.body) as Map<String, dynamic>?;
+        error = data?['error']?.toString() ?? error;
+      } catch (_) {
+        if (response.body.isNotEmpty) {
+          error = response.body;
+        }
+      }
       throw Exception(error);
     }
+
+    if (response.body.isEmpty) {
+      return <String, dynamic>{};
+    }
+
+    final data = jsonDecode(response.body) as Map<String, dynamic>?;
+    return data ?? <String, dynamic>{};
   }
 }
