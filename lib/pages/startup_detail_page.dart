@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:invest_up/services/functions_api.dart';
@@ -47,6 +48,16 @@ class _StartupDetailPageState extends State<StartupDetailPage> {
   static List<Map<String, dynamic>> _asMapList(dynamic value) {
     final list = value as List<dynamic>? ?? [];
     return list.whereType<Map>().map((e) => e.cast<String, dynamic>()).toList();
+  }
+
+  bool _isInvestor(Map<String, dynamic> userData) {
+    final carteira = userData['carteira'] as List<dynamic>? ?? [];
+    for (final item in carteira) {
+      if (item is Map && item['startup_id'] == widget.startupId) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @override
@@ -143,24 +154,7 @@ class _StartupDetailPageState extends State<StartupDetailPage> {
                   const SizedBox(height: 12),
                   _buyOfferCard(precoToken: precoToken),
                   const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.question_answer),
-                      label: const Text('Perguntas privadas'),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => PrivateQuestionsPage(
-                              startupId: widget.startupId,
-                              startupName: nome,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
+                  _privateQuestionsEntry(startupName: nome),
                   const SizedBox(height: 12),
                   _infoCard(
                     title: 'Descrição',
@@ -411,6 +405,99 @@ class _StartupDetailPageState extends State<StartupDetailPage> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _privateQuestionsEntry({required String startupName}) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.question_answer),
+              label: const Text('Perguntas privadas'),
+              onPressed: null,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Disponivel apenas para investidores logados.',
+            style: GoogleFonts.lato(color: AppTheme.textSecondary),
+          ),
+        ],
+      );
+    }
+
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (!snapshot.hasData || !snapshot.data!.exists) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.question_answer),
+                  label: const Text('Perguntas privadas'),
+                  onPressed: null,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Disponivel apenas para investidores desta startup.',
+                style: GoogleFonts.lato(color: AppTheme.textSecondary),
+              ),
+            ],
+          );
+        }
+
+        final userData = snapshot.data!.data() as Map<String, dynamic>;
+        final isInvestor = _isInvestor(userData);
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.question_answer),
+                label: const Text('Perguntas privadas'),
+                onPressed: isInvestor
+                    ? () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => PrivateQuestionsPage(
+                              startupId: widget.startupId,
+                              startupName: startupName,
+                            ),
+                          ),
+                        );
+                      }
+                    : null,
+              ),
+            ),
+            if (!isInvestor) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Disponivel apenas para investidores desta startup.',
+                style: GoogleFonts.lato(color: AppTheme.textSecondary),
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
 
