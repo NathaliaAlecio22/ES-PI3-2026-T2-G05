@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class FunctionsApi {
@@ -56,10 +56,7 @@ class FunctionsApi {
     required String offerId,
     required double quantidade,
   }) async {
-    await _post('/orders/buy', {
-      'offerId': offerId,
-      'quantidade': quantidade,
-    });
+    await _post('/orders/buy', {'offerId': offerId, 'quantidade': quantidade});
   }
 
   static Future<void> acceptBuyOffer({

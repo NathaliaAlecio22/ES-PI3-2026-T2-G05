@@ -142,9 +142,7 @@ class _StartupDetailPageState extends State<StartupDetailPage> {
                   ),
                   const SizedBox(height: 12),
                   _buyOfferCard(precoToken: precoToken),
-
                   const SizedBox(height: 12),
-
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
@@ -163,7 +161,6 @@ class _StartupDetailPageState extends State<StartupDetailPage> {
                       },
                     ),
                   ),
-
                   const SizedBox(height: 12),
                   _infoCard(
                     title: 'Descrição',
