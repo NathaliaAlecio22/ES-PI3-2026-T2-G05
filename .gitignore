@@ -1,0 +1,18 @@
+# Flutter
+.dart_tool/
+.build/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Generated Flutter desktop plugin registrants
+linux/flutter/generated_plugin_registrant.h
+linux/flutter/generated_plugins.cmake
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
