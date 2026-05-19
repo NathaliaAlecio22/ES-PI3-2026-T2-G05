@@ -3,7 +3,7 @@ import { readFileSync } from 'fs';
 
 let testEnv: RulesTestEnvironment;
 
-describe('Segurança do App', () => {
+describe('segurança do app', () => {
     beforeAll(async () => {
         testEnv = await initializeTestEnvironment({
             projectId: 'pi-iii-d8570',
