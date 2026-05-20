@@ -6,6 +6,7 @@ import 'package:invest_up/pages/startup_catalog_page.dart';
 import 'package:invest_up/pages/token_exchange_page.dart';
 import 'package:invest_up/pages/wallet_page.dart';
 import 'package:invest_up/theme/app_theme.dart';
+import 'package:invest_up/pages/configuracoes_screen.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -27,7 +28,10 @@ class _HomePageState extends State<HomePage> {
       body: StreamBuilder<DocumentSnapshot>(
         stream: user == null
             ? null
-            : FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots(),
+            : FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(user.uid)
+                  .snapshots(),
         builder: (context, userSnapshot) {
           final userData =
               (userSnapshot.data?.data() as Map<String, dynamic>?) ?? {};
@@ -35,7 +39,9 @@ class _HomePageState extends State<HomePage> {
           final saldo = (userData['saldo'] as num?)?.toDouble() ?? 0;
 
           return StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance.collection('startups').snapshots(),
+            stream: FirebaseFirestore.instance
+                .collection('startups')
+                .snapshots(),
             builder: (context, snapshot) {
               final docs = snapshot.data?.docs ?? [];
 
@@ -366,9 +372,9 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _openWallet() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const WalletPage()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const WalletPage()));
   }
 
   Widget _marketCard({
@@ -516,7 +522,9 @@ class _HomePageState extends State<HomePage> {
           }
 
           if (index == 4) {
-            FirebaseAuth.instance.signOut();
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const ConfiguracoesScreen()),
+            );
           }
         },
         child: Padding(
