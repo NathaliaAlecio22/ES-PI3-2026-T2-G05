@@ -8,3 +8,12 @@ typings/
 # Node.js dependency directory
 node_modules/
 *.local
+
+# Logs de debug e arquivos do emulador
+*.log
+.firebase/
+.runtimeconfig.json
+
+# Arquivos de sistema (OS)
+.DS_Store
+Thumbs.db
