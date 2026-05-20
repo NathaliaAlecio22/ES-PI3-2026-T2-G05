@@ -100,4 +100,17 @@ describe("testes da API de exchange/transações", () => {
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ error: "startup-not-found" }));
   });
+
+  it("deve retornar uma resposta automatica", async () => {
+    const req = {
+      method: "POST",
+      path: "/qa/auto-response",
+      body: { question: "erro" },
+    };
+    const res = createRes();
+
+    await api(req as any, res as any);
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ answer: expect.any(String) }));
+  });
 });
