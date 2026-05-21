@@ -88,6 +88,42 @@ flutter run
 
 ---
 
+## 🧪 Como Executar os Testes
+
+O projeto conta com uma suíte de testes de integração no backend para validar as regras de negócio de compra, venda e saldo da carteira (TDD).
+
+**Pré-requisitos:**
+* Ter o Node.js instalado.
+* Ter o Java (JRE) instalado.
+* Instalar o Firebase CLI globalmente:
+  ```bash
+  npm install -g firebase-tools
+  ```
+
+Para rodar os testes localmente, necessita de dois terminais:
+
+**Terminal 1:**
+1) Na raiz do projeto, inicie o emulador do Firestore:
+   ```bash
+   firebase emulators:start --only firestore
+   ```
+
+**Terminal 2:**
+1) Acesse o diretório das Cloud Functions:
+   ```bash
+   cd functions
+   ```
+2) Instale as dependências do Node (caso não tenha):
+   ```bash
+   npm install
+   ```
+3) Execute a suíte de testes:
+   ```bash
+   npm test
+   ```
+
+---
+
 ## 🔥 Firebase
 
 O projeto utiliza Firebase para autenticacao e dados das startups.
