@@ -24,7 +24,7 @@ class ConfiguracoesScreen extends StatelessWidget {
       body: user == null
           ? const Center(
               child: Text(
-                'Usuario nao autenticado',
+                'Usuário não autênticado',
                 style: TextStyle(color: Colors.white),
               ),
             )
@@ -41,7 +41,7 @@ class ConfiguracoesScreen extends StatelessWidget {
                 if (snapshot.hasError) {
                   return const Center(
                     child: Text(
-                      'Erro ao carregar dados do usuario',
+                      'Erro ao carregar dados do usuário',
                       style: TextStyle(color: Colors.white),
                     ),
                   );
@@ -58,13 +58,13 @@ class ConfiguracoesScreen extends StatelessWidget {
                 );
                 final email = _asText(
                   data['email'] ?? user.email,
-                  fallback: 'E-mail nao informado',
+                  fallback: 'E-mail não informado',
                 );
                 final telefone = _asText(
                   data['telefone'] ?? data['phone'],
-                  fallback: 'Telefone nao informado',
+                  fallback: 'Telefone não informado',
                 );
-                final cpf = _asText(data['cpf'], fallback: 'CPF nao informado');
+                final cpf = _asText(data['cpf'], fallback: 'CPF não informado');
                 final inicial = nome.isEmpty ? 'I' : nome[0].toUpperCase();
 
                 return Column(
@@ -100,7 +100,7 @@ class ConfiguracoesScreen extends StatelessWidget {
                               Row(
                                 children: [
                                   const Text(
-                                    'Configuracões',
+                                    'Configurações',
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 22,
@@ -181,7 +181,7 @@ class ConfiguracoesScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'Informacoes da conta',
+                              'Informações da conta',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 18,
@@ -219,7 +219,7 @@ class ConfiguracoesScreen extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text(
-              'Perfil nao encontrado',
+              'Perfil não encontrado',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.white, fontSize: 20),
             ),
@@ -264,7 +264,7 @@ class ConfiguracoesScreen extends StatelessWidget {
       builder: (context) => AlertDialog(
         title: const Text('Excluir conta'),
         content: const Text(
-          'Tem certeza que deseja excluir sua conta?\n\nVocê perdera:\n- Seus dados\n- Tokens/creditos\n- Saldo em conta\n\nEssa ação é irreversivel.',
+          'Tem certeza que deseja excluir sua conta?\n\nVocê perdera:\n- Seus dados\n- Tokens/créditos\n- Saldo em conta\n\nEssa ação é irreversivel.',
         ),
         actions: [
           TextButton(
@@ -296,7 +296,7 @@ class ConfiguracoesScreen extends StatelessWidget {
                     content: Text(
                       e.code == 'requires-recent-login'
                           ? 'Entre novamente antes de excluir a conta.'
-                          : 'Nao foi possivel excluir a conta.',
+                          : 'Não foi possivel excluir a conta.',
                     ),
                   ),
                 );
@@ -304,7 +304,7 @@ class ConfiguracoesScreen extends StatelessWidget {
                 navigator.pop();
                 messenger.showSnackBar(
                   const SnackBar(
-                    content: Text('Nao foi possivel excluir a conta.'),
+                    content: Text('Não foi possivel excluir a conta.'),
                   ),
                 );
               }
