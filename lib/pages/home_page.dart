@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:invest_up/pages/startup_catalog_page.dart';
 import 'package:invest_up/pages/token_exchange_page.dart';
 import 'package:invest_up/pages/wallet_page.dart';
+import 'package:invest_up/pages/dashboard_page.dart';
 import 'package:invest_up/theme/app_theme.dart';
 import 'package:invest_up/pages/configuracoes_screen.dart';
 
@@ -377,6 +378,12 @@ class _HomePageState extends State<HomePage> {
     ).push(MaterialPageRoute(builder: (_) => const WalletPage()));
   }
 
+  void _openDashboard() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const DashboardPage()));
+  }
+
   Widget _marketCard({
     required String nome,
     required String setor,
@@ -518,6 +525,11 @@ class _HomePageState extends State<HomePage> {
 
           if (index == 2) {
             _openTokenExchange();
+            return;
+          }
+
+          if (index == 3) {
+            _openDashboard();
             return;
           }
 

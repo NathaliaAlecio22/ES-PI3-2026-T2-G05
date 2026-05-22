@@ -76,6 +76,16 @@ class FunctionsApi {
     return data['answer']?.toString() ?? '';
   }
 
+  static Future<Map<String, dynamic>> getTokenVariation({
+    required String startupId,
+    required String period,
+  }) async {
+    return _postForResponse('/dashboard/token-variation', {
+      'startupId': startupId,
+      'period': period,
+    });
+  }
+
   static Future<void> _post(String path, Map<String, dynamic> body) async {
     await _postForResponse(path, body);
   }
