@@ -78,7 +78,7 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
       }
     } catch (_) {
       if (mounted) {
-        _showMessage('Nao foi possivel salvar.');
+        _showMessage('Não foi possivel salvar.');
       }
     } finally {
       if (mounted) {
@@ -108,7 +108,7 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
       body: user == null
           ? const Center(
               child: Text(
-                'Usuario nao autenticado',
+                'Usuário nao autenticado',
                 style: TextStyle(color: Colors.white),
               ),
             )
