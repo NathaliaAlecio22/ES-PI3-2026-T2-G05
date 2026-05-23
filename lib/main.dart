@@ -71,8 +71,21 @@ class _LoginState extends State<Login> {
         context,
         MaterialPageRoute(builder: (_) => const HomePage()),
       );
-    } on FirebaseAuthException catch (e) {
-      _alertUser(e.message ?? 'Erro ao fazer login');
+      
+    } on FirebaseAuthMultiFactorException catch (e) {
+
+      final resolver = e.resolver;
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => MfaPage(resolver: resolver),
+        ),
+      );
+
+    } catch (e) {
+      // outros erros
+      print("Erro login: $e");
     }
   }
 
