@@ -61,32 +61,39 @@ class _LoginState extends State<Login> {
       return;
     }
 
-    try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: emailText,
-        password: passwordText,
-      );
+      try {
+        await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: emailText,
+          password: passwordText,
+        );
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HomePage()),
-      );
-      
-    } on FirebaseAuthMultiFactorException catch (e) {
+        final user = FirebaseAuth.instance.currentUser;
 
-      final resolver = e.resolver;
+        if (user == null) {
+          _alertUser("Erro ao autenticar usuário");
+          return;
+        }
 
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => MfaPage(resolver: resolver),
-        ),
-      );
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const HomePage()),
+        );
 
-    } catch (e) {
-      // outros erros
-      print("Erro login: $e");
-    }
+      } on FirebaseAuthMultiFactorException catch (e) {
+        final resolver = e.resolver;
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => MfaPage(resolver: resolver),
+          ),
+        );
+
+      } on FirebaseAuthException catch (e) {
+        _alertUser(e.message ?? 'Erro ao fazer login');
+      } catch (e) {
+        _alertUser('Erro inesperado');
+      }
   }
 
   void goToSignUp() {
