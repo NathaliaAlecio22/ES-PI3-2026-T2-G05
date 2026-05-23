@@ -5,8 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class FunctionsApi {
-  static const String _cloudUrl =
-      'https://us-central1-pi-iii-d8570.cloudfunctions.net/api';
+  static const String _cloudUrl = 'https://api-hsr6pxtqoq-uc.a.run.app';
   static const String _emulatorUrl =
       'http://127.0.0.1:5001/pi-iii-d8570/us-central1/api';
 
@@ -16,7 +15,12 @@ class FunctionsApi {
       return override;
     }
 
-    if (kReleaseMode) {
+    const useCloud = bool.fromEnvironment(
+      'USE_CLOUD_FUNCTIONS',
+      defaultValue: true,
+    );
+
+    if (kReleaseMode || useCloud) {
       return _cloudUrl;
     }
 

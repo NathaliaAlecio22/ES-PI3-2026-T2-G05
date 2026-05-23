@@ -84,12 +84,12 @@ function buildBuckets(start: Date, end: Date, unit: BucketUnit): Bucket[] {
   let cursor = new Date(start);
 
   while (cursor <= end) {
-    const bucketStart =
-      unit === "month"
-        ? startOfMonth(cursor)
-        : unit === "week"
-          ? startOfWeek(cursor)
-          : startOfDay(cursor);
+    let bucketStart = startOfDay(cursor);
+    if (unit === "month") {
+      bucketStart = startOfMonth(cursor);
+    } else if (unit === "week") {
+      bucketStart = startOfWeek(cursor);
+    }
     const key = getBucketKey(bucketStart, unit);
     buckets.push({
       key,
@@ -135,7 +135,7 @@ function getPeriodConfig(period: string, now: Date): { unit: BucketUnit; start: 
   }
 }
 
-export const api = onRequest(async (req, res) => {
+export const api = onRequest({ invoker: "public" }, async (req, res) => {
   setCors(res);
   if (req.method === "OPTIONS") {
     res.status(204).send("");

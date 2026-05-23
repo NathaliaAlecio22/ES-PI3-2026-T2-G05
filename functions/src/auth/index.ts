@@ -3,5 +3,3 @@ import { register } from "./handlers/register.handler";
 import { forgotPassword } from "./handlers/forgotPassword.handler";
 
 export { login, register, forgotPassword };
-
-export * from "../auth";

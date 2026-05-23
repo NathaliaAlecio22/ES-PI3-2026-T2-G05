@@ -114,7 +114,7 @@ class _DashboardPageState extends State<DashboardPage> {
             builder: (context, snapshot) {
               final startups = snapshot.data?.docs ?? [];
               final items = startups
-                  .map(
+                  .map<Map<String, String>>(
                     (doc) => {
                       'startup_id': doc.id,
                       'startup_nome':
@@ -201,7 +201,7 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _startupSelector(List<Map<String, dynamic>> startups) {
+  Widget _startupSelector(List<Map<String, String>> startups) {
     if (startups.isEmpty) {
       return _infoCard(
         icon: Icons.info_outline,
