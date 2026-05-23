@@ -73,13 +73,16 @@ class _SignUpState extends State<SignUp> {
     }
 
     try {
-      //  1. Criar usuário no Auth
+      // 1. Criar usuário
       final userCredential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(email: emailText, password: passText);
+          .createUserWithEmailAndPassword(
+        email: emailText,
+        password: passText,
+      );
 
       final uid = userCredential.user!.uid;
 
-      // 2. Salvar dados no Firestore
+      // 2. Salvar Firestore (continua igual)
       await FirebaseFirestore.instance.collection('users').doc(uid).set({
         'nome': nameText,
         'email': emailText,
@@ -90,16 +93,89 @@ class _SignUpState extends State<SignUp> {
         'createdAt': Timestamp.now(),
       });
 
-      // 3. Ir para Home
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HomePage()),
+      // 3. Enviar SMS para ativar MFA
+      await FirebaseAuth.instance.verifyPhoneNumber(
+        phoneNumber: _formatPhoneE164(telText),
+
+        verificationCompleted: (_) {},
+
+        verificationFailed: (e) {
+          _alertUser(e.message ?? "Erro ao enviar SMS");
+        },
+
+        codeSent: (verificationId, _) {
+          _showMfaDialog(verificationId);
+        },
+
+        codeAutoRetrievalTimeout: (_) {},
       );
+
     } on FirebaseAuthException catch (e) {
       _alertUser(e.message ?? 'Erro ao cadastrar');
     } catch (e) {
       _alertUser('Erro inesperado');
     }
+  }
+
+  String _formatPhoneE164(String phone) {
+    final numbers = phone.replaceAll(RegExp(r'[^0-9]'), '');
+    return '+55$numbers';
+  }
+
+  void _showMfaDialog(String verificationId) {
+    final codeController = TextEditingController();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Verificação SMS"),
+          content: TextField(
+            controller: codeController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: "Código recebido",
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                try {
+                  final credential = PhoneAuthProvider.credential(
+                    verificationId: verificationId,
+                    smsCode: codeController.text.trim(),
+                  );
+
+                  final assertion =
+                      PhoneMultiFactorGenerator.getAssertion(credential);
+
+                  // Enroll do numero de telefone com o Firebase para 2FA
+                  final user = FirebaseAuth.instance.currentUser;
+
+                  if (user == null) {
+                    _alertUser("Usuário não encontrado");
+                    return;
+                  }
+
+                  await user.multiFactor.enroll(assertion);
+
+                  if (!mounted) return;
+
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const HomePage()),
+                  );
+                } catch (e) {
+                  _alertUser("Erro ao verificar código");
+                }
+              },
+              child: const Text("Confirmar"),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   bool _isValidEmail(String email) {
