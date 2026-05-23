@@ -29,42 +29,60 @@ class _MfaPageState extends State<MfaPage> {
     setState(() => loading = true);
 
     try {
-      final hint = widget.resolver.hints.first;
+      // pega o primeiro método MFA (telefone)
+      final hint = widget.resolver.hints
+          .whereType<PhoneMultiFactorInfo>()
+          .first;
 
       await FirebaseAuth.instance.verifyPhoneNumber(
         multiFactorSession: widget.resolver.session,
+
         phoneNumber: hint.phoneNumber,
+
         verificationCompleted: (_) {},
+
         verificationFailed: (e) {
-          debugPrint(e.toString());
+          setState(() => loading = false);
+          _showError(e.message ?? "Erro ao enviar SMS");
         },
-        codeSent: (vId, _) {
+
+        codeSent: (verificationId, _) {
           setState(() {
-            verificationId = vId;
+            this.verificationId = verificationId;
             loading = false;
           });
         },
-        codeAutoRetrievalTimeout: (vId) {
-          verificationId = vId;
+
+        codeAutoRetrievalTimeout: (verificationId) {
+          this.verificationId = verificationId;
         },
       );
     } catch (e) {
-      debugPrint("Erro MFA: $e");
       setState(() => loading = false);
+      _showError("Erro ao enviar código MFA");
     }
   }
 
   Future<void> _verifyCode() async {
-    if (verificationId == null) return;
+    if (verificationId == null) {
+      _showError("Código ainda não foi enviado");
+      return;
+    }
+
+    if (_codeController.text.trim().isEmpty) {
+      _showError("Digite o código");
+      return;
+    }
 
     try {
+      setState(() => loading = true);
+
       final credential = PhoneAuthProvider.credential(
         verificationId: verificationId!,
         smsCode: _codeController.text.trim(),
       );
 
-      final assertion =
-          PhoneMultiFactorGenerator.getAssertion(credential);
+      final assertion = PhoneMultiFactorGenerator.getAssertion(credential);
 
       await widget.resolver.resolveSignIn(assertion);
 
@@ -75,8 +93,25 @@ class _MfaPageState extends State<MfaPage> {
         MaterialPageRoute(builder: (_) => const HomePage()),
       );
     } catch (e) {
-      debugPrint("Erro ao validar código: $e");
+      _showError("Código inválido ou expirado");
+      setState(() => loading = false);
     }
+  }
+
+  void _showError(String message) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Erro"),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
