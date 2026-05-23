@@ -86,6 +86,12 @@ flutter pub get
 flutter run
 ```
 
+Opcional: sobrescreva a URL das Functions (Cloud Run v2) com `--dart-define`:
+
+```
+flutter run -d chrome --dart-define=FUNCTIONS_BASE_URL=https://api-hsr6pxtqoq-uc.a.run.app
+```
+
 ---
 
 ## 🔥 Firebase

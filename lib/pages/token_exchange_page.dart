@@ -16,6 +16,7 @@ class _TokenExchangePageState extends State<TokenExchangePage> {
   int _selectedTab = 0;
   int _buyCount = 0;
   int _sellCount = 0;
+  int _ownerFilter = 0;
   String? _processingOfferId;
 
   @override
@@ -36,6 +37,8 @@ class _TokenExchangePageState extends State<TokenExchangePage> {
               _header(),
               const SizedBox(height: 12),
               _tabSwitcher(),
+              const SizedBox(height: 12),
+              _ownerFilterBar(),
               const SizedBox(height: 12),
               Expanded(child: _offerList()),
             ],
@@ -62,6 +65,13 @@ class _TokenExchangePageState extends State<TokenExchangePage> {
         children: [
           Row(
             children: [
+              IconButton(
+                onPressed: Navigator.of(context).canPop()
+                    ? () => Navigator.of(context).pop()
+                    : null,
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                tooltip: 'Voltar',
+              ),
               Expanded(
                 child: Text(
                   'Balcão de Tokens',
@@ -164,6 +174,76 @@ class _TokenExchangePageState extends State<TokenExchangePage> {
     );
   }
 
+  Widget _ownerFilterBar() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF171B26),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withAlpha(16)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _ownerFilterChip(
+              label: 'Todas',
+              isSelected: _ownerFilter == 0,
+              onTap: () => setState(() => _ownerFilter = 0),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: _ownerFilterChip(
+              label: 'Minhas',
+              isSelected: _ownerFilter == 1,
+              onTap: () => setState(() => _ownerFilter = 1),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: _ownerFilterChip(
+              label: 'Outras',
+              isSelected: _ownerFilter == 2,
+              onTap: () => setState(() => _ownerFilter = 2),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _ownerFilterChip({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF2B3347) : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected
+                ? Colors.white.withAlpha(60)
+                : Colors.white.withAlpha(10),
+          ),
+        ),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: GoogleFonts.lato(
+            color: isSelected ? Colors.white : AppTheme.textSecondary,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _offerList() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
@@ -171,6 +251,7 @@ class _TokenExchangePageState extends State<TokenExchangePage> {
           .where('status', isEqualTo: 'aberta')
           .snapshots(),
       builder: (context, snapshot) {
+        final currentUserId = FirebaseAuth.instance.currentUser?.uid;
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
@@ -205,11 +286,36 @@ class _TokenExchangePageState extends State<TokenExchangePage> {
             });
           });
         }
-        final offers = docs.where((doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          final tipo = (data['tipo'] ?? 'venda').toString();
-          return _selectedTab == 0 ? tipo == 'compra' : tipo == 'venda';
-        }).toList();
+        final offers =
+            docs.where((doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              final tipo = (data['tipo'] ?? 'venda').toString();
+              final investidorId = (data['investidor_id'] ?? '').toString();
+              final isMine =
+                  currentUserId != null && investidorId == currentUserId;
+              if (_selectedTab == 0 && tipo != 'compra') {
+                return false;
+              }
+              if (_selectedTab == 1 && tipo != 'venda') {
+                return false;
+              }
+              if (_ownerFilter == 1) {
+                return isMine;
+              }
+              if (_ownerFilter == 2) {
+                return !isMine;
+              }
+              return true;
+            }).toList()..sort((a, b) {
+              final aData = a.data() as Map<String, dynamic>;
+              final bData = b.data() as Map<String, dynamic>;
+              final aMine = aData['investidor_id']?.toString() == currentUserId;
+              final bMine = bData['investidor_id']?.toString() == currentUserId;
+              if (aMine == bMine) {
+                return 0;
+              }
+              return aMine ? 1 : -1;
+            });
 
         if (offers.isEmpty) {
           return Center(
@@ -254,14 +360,27 @@ class _TokenExchangePageState extends State<TokenExchangePage> {
 
                 final offerId = doc.id;
                 final tipo = (data['tipo'] ?? 'venda').toString();
+                final isMine =
+                    currentUserId != null && investidorId == currentUserId;
+
+                final labelNome = isMine
+                    ? 'Voce'
+                    : exibicaoInvestidor.isNotEmpty
+                    ? exibicaoInvestidor
+                    : 'Investidor';
 
                 return _offerCard(
                   startupNome: startupNome,
-                  investidorNome: exibicaoInvestidor,
+                  investidorNome: labelNome,
                   quantidade: quantidade,
                   precoUnitario: precoUnitario,
-                  actionLabel: _selectedTab == 0 ? 'Vender' : 'Comprar',
+                  actionLabel: isMine
+                      ? 'Sua oferta'
+                      : _selectedTab == 0
+                      ? 'Aceitar oferta e vender'
+                      : 'Aceitar oferta e comprar',
                   isProcessing: _processingOfferId == offerId,
+                  isMine: isMine,
                   onAction: () {
                     _handleOfferAction(
                       offerId: offerId,
@@ -288,6 +407,7 @@ class _TokenExchangePageState extends State<TokenExchangePage> {
     required String actionLabel,
     required VoidCallback onAction,
     required bool isProcessing,
+    required bool isMine,
   }) {
     return Card(
       child: Padding(
@@ -295,13 +415,41 @@ class _TokenExchangePageState extends State<TokenExchangePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              startupNome,
-              style: GoogleFonts.lato(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    startupNome,
+                    style: GoogleFonts.lato(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                if (isMine)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0AC45F).withAlpha(40),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: const Color(0xFF0AC45F).withAlpha(140),
+                      ),
+                    ),
+                    child: Text(
+                      'Sua oferta',
+                      style: GoogleFonts.lato(
+                        color: const Color(0xFF0AC45F),
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 6),
             Text(
@@ -326,7 +474,7 @@ class _TokenExchangePageState extends State<TokenExchangePage> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: isProcessing ? null : onAction,
+                onPressed: isProcessing || isMine ? null : onAction,
                 child: isProcessing
                     ? const SizedBox(
                         width: 20,
