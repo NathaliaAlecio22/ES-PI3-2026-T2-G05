@@ -378,10 +378,18 @@ class _HomePageState extends State<HomePage> {
     ).push(MaterialPageRoute(builder: (_) => const WalletPage()));
   }
 
-  void _openDashboard() {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const DashboardPage()));
+  Future<void> _openFromBottomNav(int index, Widget page) async {
+    setState(() {
+      currentTab = index;
+    });
+
+    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
+
+    if (!mounted) return;
+
+    setState(() {
+      currentTab = 0;
+    });
   }
 
   Widget _marketCard({
@@ -514,30 +522,29 @@ class _HomePageState extends State<HomePage> {
     return Expanded(
       child: InkWell(
         onTap: () {
-          setState(() {
-            currentTab = index;
-          });
-
           if (index == 1) {
-            _openCatalog();
+            _openFromBottomNav(index, const StartupCatalogPage());
             return;
           }
 
           if (index == 2) {
-            _openTokenExchange();
+            _openFromBottomNav(index, const TokenExchangePage());
             return;
           }
 
           if (index == 3) {
-            _openDashboard();
+            _openFromBottomNav(index, const PortfolioPage());
             return;
           }
 
           if (index == 4) {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const ConfiguracoesScreen()),
-            );
+            _openFromBottomNav(index, const ConfiguracoesScreen());
+            return;
           }
+
+          setState(() {
+            currentTab = 0;
+          });
         },
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 10),
