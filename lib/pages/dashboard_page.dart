@@ -15,7 +15,7 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   static const Map<String, String> _periodLabels = {
-    'daily': 'Diario',
+    'daily': 'Diário',
     'weekly': 'Semanal',
     'monthly': 'Mensal',
     'six_months': '6 meses',
@@ -72,7 +72,7 @@ class _DashboardPageState extends State<DashboardPage> {
       final message = error.toString();
       setState(() {
         _error = message.isEmpty
-            ? 'Nao foi possivel carregar o grafico.'
+            ? 'Não foi possivel carregar o gráfico.'
             : message;
         _loading = false;
       });
@@ -190,7 +190,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Variacao e tendencia com base nas transacoes',
+                  'Variação e tendência com base nas transações',
                   style: GoogleFonts.lato(color: Colors.white70),
                 ),
               ],
@@ -207,7 +207,7 @@ class _DashboardPageState extends State<DashboardPage> {
         icon: Icons.info_outline,
         color: const Color(0xFF5AA7FF),
         title: 'Sem startups cadastradas',
-        message: 'Cadastre startups para visualizar o grafico de valorizacao.',
+        message: 'Cadastre startups para visualizar o gráfico de valorização.',
       );
     }
 
@@ -317,7 +317,7 @@ class _DashboardPageState extends State<DashboardPage> {
             height: 260,
             child: Center(
               child: Text(
-                'Sem transacoes para este periodo.',
+                'Sem transações para este período.',
                 style: GoogleFonts.lato(color: AppTheme.textSecondary),
               ),
             ),
@@ -353,7 +353,7 @@ class _DashboardPageState extends State<DashboardPage> {
           Row(
             children: [
               _metricPill(
-                label: 'Preco atual',
+                label: 'Preço atual',
                 value: _points.isEmpty
                     ? 'R\$ 0,00'
                     : 'R\$ ${_points.last.price.toStringAsFixed(2)}',
@@ -361,7 +361,7 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
               const SizedBox(width: 10),
               _metricPill(
-                label: 'Variacao',
+                label: 'Variação',
                 value: _points.isEmpty
                     ? '0.00%'
                     : '${(_points.last.variationPct * 100).toStringAsFixed(2)}%',
@@ -376,9 +376,9 @@ class _DashboardPageState extends State<DashboardPage> {
           const SizedBox(height: 8),
           Row(
             children: [
-              _legendDot(color: const Color(0xFFFF8A1B), label: 'Preco'),
+              _legendDot(color: const Color(0xFFFF8A1B), label: 'Preço'),
               const SizedBox(width: 14),
-              _legendDot(color: const Color(0xFF3BD6C6), label: 'Tendencia'),
+              _legendDot(color: const Color(0xFF3BD6C6), label: 'Tendência'),
             ],
           ),
         ],
@@ -549,10 +549,10 @@ class _DashboardPageState extends State<DashboardPage> {
           child: _infoCard(
             icon: Icons.show_chart,
             color: const Color(0xFFFF8A1B),
-            title: 'Oscilacao atual',
+            title: 'Oscilação atual',
             message: variation >= 0
-                ? 'Tendencia de alta nos ultimos periodos.'
-                : 'Tendencia de queda nos ultimos periodos.',
+                ? 'Tendência de alta nos últimos períodos.'
+                : 'Tendência de queda nos últimos períodos.',
           ),
         ),
         const SizedBox(width: 12),
@@ -560,7 +560,7 @@ class _DashboardPageState extends State<DashboardPage> {
           child: _infoCard(
             icon: Icons.trending_up_rounded,
             color: const Color(0xFF3BD6C6),
-            title: 'Preco medio',
+            title: 'Preço médio',
             message: _points.isEmpty
                 ? 'Sem dados no periodo.'
                 : 'R\$ ${_averagePrice().toStringAsFixed(2)}',
