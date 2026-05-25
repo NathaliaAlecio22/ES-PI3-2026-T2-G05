@@ -533,7 +533,7 @@ class _HomePageState extends State<HomePage> {
           }
 
           if (index == 3) {
-            _openFromBottomNav(index, const PortfolioPage());
+            _openFromBottomNav(index, const DashboardPage());
             return;
           }
 
