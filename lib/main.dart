@@ -9,6 +9,7 @@ import 'package:invest_up/theme/app_theme.dart';
 import 'firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:invest_up/pages/welcome_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,7 +28,12 @@ class InvestUp extends StatelessWidget {
       title: 'Invest Up',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
-      home: const Login(title: "Invest Up"),
+      initialRoute: '/',
+      routes: {
+        '/': (context) => const WelcomeScreen(),
+        '/login': (context) => const Login(title: "Invest Up"),
+        '/home': (context) => const HomePage(),
+      },
     );
   }
 }
