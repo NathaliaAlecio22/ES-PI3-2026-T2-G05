@@ -14,7 +14,128 @@ admin.initializeApp();
 
 const db = getFirestore();
 
-export const api = onRequest(async (req, res) => {
+type BucketUnit = "day" | "week" | "month";
+
+type Bucket = {
+  key: string;
+  label: string;
+  start: Date;
+};
+
+type BucketAggregate = {
+  totalValue: number;
+  totalQty: number;
+};
+
+const monthLabels = [
+  "Jan",
+  "Fev",
+  "Mar",
+  "Abr",
+  "Mai",
+  "Jun",
+  "Jul",
+  "Ago",
+  "Set",
+  "Out",
+  "Nov",
+  "Dez",
+];
+
+function startOfDay(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function startOfWeek(date: Date): Date {
+  const day = date.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  const start = new Date(date);
+  start.setDate(date.getDate() + diff);
+  start.setHours(0, 0, 0, 0);
+  return start;
+}
+
+function startOfMonth(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function formatBucketLabel(date: Date, unit: BucketUnit): string {
+  if (unit === "month") {
+    return monthLabels[date.getMonth()];
+  }
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  return `${day}/${month}`;
+}
+
+function getBucketKey(date: Date, unit: BucketUnit): string {
+  if (unit === "month") {
+    return `${date.getFullYear()}-${date.getMonth() + 1}`;
+  }
+  if (unit === "week") {
+    const start = startOfWeek(date);
+    return `${start.getFullYear()}-${start.getMonth() + 1}-${start.getDate()}`;
+  }
+  return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+}
+
+function buildBuckets(start: Date, end: Date, unit: BucketUnit): Bucket[] {
+  const buckets: Bucket[] = [];
+  let cursor = new Date(start);
+
+  while (cursor <= end) {
+    let bucketStart = startOfDay(cursor);
+    if (unit === "month") {
+      bucketStart = startOfMonth(cursor);
+    } else if (unit === "week") {
+      bucketStart = startOfWeek(cursor);
+    }
+    const key = getBucketKey(bucketStart, unit);
+    buckets.push({
+      key,
+      label: formatBucketLabel(bucketStart, unit),
+      start: bucketStart,
+    });
+
+    if (unit === "month") {
+      cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+    } else if (unit === "week") {
+      cursor = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + 7);
+    } else {
+      cursor = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + 1);
+    }
+  }
+
+  return buckets;
+}
+
+function getPeriodConfig(period: string, now: Date): { unit: BucketUnit; start: Date } {
+  switch (period) {
+    case "daily": {
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
+      return { unit: "day", start };
+    }
+    case "weekly": {
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7 * 7);
+      return { unit: "week", start: startOfWeek(start) };
+    }
+    case "six_months": {
+      const start = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+      return { unit: "month", start: startOfMonth(start) };
+    }
+    case "ytd": {
+      const start = new Date(now.getFullYear(), 0, 1);
+      return { unit: "month", start: startOfMonth(start) };
+    }
+    case "monthly":
+    default: {
+      const start = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+      return { unit: "month", start: startOfMonth(start) };
+    }
+  }
+}
+
+export const api = onRequest({ invoker: "public" }, async (req, res) => {
   setCors(res);
   if (req.method === "OPTIONS") {
     res.status(204).send("");
@@ -202,6 +323,7 @@ export const api = onRequest(async (req, res) => {
       }
 
       const offerRef = db.collection("ofertas_investidores").doc(offerId);
+      const transactionRef = db.collection("transacoes").doc();
       const buyerRef = db.collection("users").doc(uid);
 
       await db.runTransaction(async (tx) => {
@@ -264,6 +386,19 @@ export const api = onRequest(async (req, res) => {
           offerUpdate.status = "concluida";
         }
         tx.set(offerRef, offerUpdate, { merge: true });
+
+        tx.set(transactionRef, {
+          tipo: "compra",
+          offer_id: offerId,
+          startup_id: startupId,
+          startup_nome: startupNome,
+          quantidade,
+          preco_unitario: precoUnitario,
+          total,
+          comprador_id: uid,
+          vendedor_id: sellerId,
+          created_at: FieldValue.serverTimestamp(),
+        });
       });
 
       res.status(200).json({ ok: true });
@@ -280,6 +415,7 @@ export const api = onRequest(async (req, res) => {
       }
 
       const offerRef = db.collection("ofertas_investidores").doc(offerId);
+      const transactionRef = db.collection("transacoes").doc();
       const sellerRef = db.collection("users").doc(uid);
 
       await db.runTransaction(async (tx) => {
@@ -357,9 +493,95 @@ export const api = onRequest(async (req, res) => {
           offerUpdate.status = "concluida";
         }
         tx.set(offerRef, offerUpdate, { merge: true });
+
+        tx.set(transactionRef, {
+          tipo: "venda",
+          offer_id: offerId,
+          startup_id: startupId,
+          startup_nome: startupNome,
+          quantidade,
+          preco_unitario: precoUnitario,
+          total,
+          comprador_id: buyerId,
+          vendedor_id: uid,
+          created_at: FieldValue.serverTimestamp(),
+        });
       });
 
       res.status(200).json({ ok: true });
+      return;
+    }
+
+    if (path === "/dashboard/token-variation") {
+      const startupId = getString(body.startupId);
+      const period = (getString(body.period) ?? "monthly").toLowerCase();
+
+      if (!startupId) {
+        res.status(400).json({ error: "invalid-startup" });
+        return;
+      }
+
+      const now = new Date();
+      const config = getPeriodConfig(period, now);
+      const buckets = buildBuckets(config.start, now, config.unit);
+
+      const snapshot = await db
+        .collection("transacoes")
+        .where("startup_id", "==", startupId)
+        .where("created_at", ">=", config.start)
+        .orderBy("created_at", "asc")
+        .get();
+
+      const aggregates = new Map<string, BucketAggregate>();
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        const createdAt = data.created_at?.toDate?.() as Date | undefined;
+        if (!createdAt) {
+          return;
+        }
+        const key = getBucketKey(createdAt, config.unit);
+        const precoUnitario = Number(data.preco_unitario ?? 0);
+        const quantidade = Number(data.quantidade ?? 0);
+        const existing = aggregates.get(key) ?? { totalValue: 0, totalQty: 0 };
+        existing.totalValue += precoUnitario * quantidade;
+        existing.totalQty += quantidade;
+        aggregates.set(key, existing);
+      });
+
+      const points = [] as Array<{
+        label: string;
+        price: number;
+        variationPct: number;
+      }>;
+
+      let lastPrice = 0;
+      buckets.forEach((bucket) => {
+        const aggregate = aggregates.get(bucket.key);
+        let price = lastPrice;
+        if (aggregate && aggregate.totalQty > 0) {
+          price = aggregate.totalValue / aggregate.totalQty;
+        }
+
+        const variationPct = lastPrice > 0 ? (price - lastPrice) / lastPrice : 0;
+        lastPrice = price;
+
+        points.push({
+          label: bucket.label,
+          price: Number(price.toFixed(2)),
+          variationPct: Number(variationPct.toFixed(4)),
+        });
+      });
+
+      const current =
+        points.length > 0
+          ? points[points.length - 1]
+          : { label: "", price: 0, variationPct: 0 };
+      res.status(200).json({
+        startupId,
+        period,
+        points,
+        current,
+      });
       return;
     }
 

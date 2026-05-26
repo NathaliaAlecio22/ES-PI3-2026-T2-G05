@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:invest_up/pages/startup_catalog_page.dart';
 import 'package:invest_up/pages/token_exchange_page.dart';
 import 'package:invest_up/pages/wallet_page.dart';
+import 'package:invest_up/pages/dashboard_page.dart';
 import 'package:invest_up/theme/app_theme.dart';
 import 'package:invest_up/pages/configuracoes_screen.dart';
 
@@ -377,6 +378,20 @@ class _HomePageState extends State<HomePage> {
     ).push(MaterialPageRoute(builder: (_) => const WalletPage()));
   }
 
+  Future<void> _openFromBottomNav(int index, Widget page) async {
+    setState(() {
+      currentTab = index;
+    });
+
+    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
+
+    if (!mounted) return;
+
+    setState(() {
+      currentTab = 0;
+    });
+  }
+
   Widget _marketCard({
     required String nome,
     required String setor,
@@ -507,25 +522,29 @@ class _HomePageState extends State<HomePage> {
     return Expanded(
       child: InkWell(
         onTap: () {
-          setState(() {
-            currentTab = index;
-          });
-
           if (index == 1) {
-            _openCatalog();
+            _openFromBottomNav(index, const StartupCatalogPage());
             return;
           }
 
           if (index == 2) {
-            _openTokenExchange();
+            _openFromBottomNav(index, const TokenExchangePage());
+            return;
+          }
+
+          if (index == 3) {
+            _openFromBottomNav(index, const DashboardPage());
             return;
           }
 
           if (index == 4) {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const ConfiguracoesScreen()),
-            );
+            _openFromBottomNav(index, const ConfiguracoesScreen());
+            return;
           }
+
+          setState(() {
+            currentTab = 0;
+          });
         },
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 10),

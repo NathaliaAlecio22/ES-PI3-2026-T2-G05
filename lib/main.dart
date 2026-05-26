@@ -1,5 +1,6 @@
 // git push --set-upstream origin feature/autenticacao
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:invest_up/pages/home_page.dart';
 import 'package:invest_up/pages/sign_up_page.dart';
@@ -15,6 +16,9 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  if (kIsWeb) {
+    await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
+  }
 
   runApp(const InvestUp());
 }
@@ -28,11 +32,35 @@ class InvestUp extends StatelessWidget {
       title: 'Invest Up',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
-      initialRoute: '/',
+      home: const AuthGate(),
       routes: {
-        '/': (context) => const WelcomeScreen(),
+        '/welcome': (context) => const WelcomeScreen(),
         '/login': (context) => const Login(title: "Invest Up"),
         '/home': (context) => const HomePage(),
+      },
+    );
+  }
+}
+
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (snapshot.hasData) {
+          return const HomePage();
+        }
+
+        return const WelcomeScreen();
       },
     );
   }
@@ -79,10 +107,11 @@ class _LoginState extends State<Login> {
         await _ensureUserProfile(user);
       }
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HomePage()),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Login realizado.')));
+      }
     } on FirebaseAuthException catch (e) {
       _alertUser(e.message ?? 'Erro ao fazer login');
     }
@@ -127,7 +156,7 @@ class _LoginState extends State<Login> {
   }
 
   void goToSignUp() {
-    Navigator.pushReplacement(
+    Navigator.push(
       context,
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) => const SignUp(),
@@ -140,7 +169,7 @@ class _LoginState extends State<Login> {
   }
 
   void goToRecoverPass() {
-    Navigator.pushReplacement(
+    Navigator.push(
       context,
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) =>
