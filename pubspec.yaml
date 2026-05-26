@@ -41,6 +41,7 @@ dependencies:
   cloud_functions: ^6.2.0
   firebase_auth: ^6.4.0
   http: ^1.2.2
+  lottie: ^3.3.3
 
 
 dev_dependencies:
@@ -75,6 +76,8 @@ flutter:
   assets:
     - assets/Icon App.png
     - assets/Logo.png
+    - assets/startup.json
+    - assets/dashboard.json
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
