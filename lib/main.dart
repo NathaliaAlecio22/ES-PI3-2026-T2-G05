@@ -14,12 +14,10 @@ import 'package:invest_up/pages/welcome_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   if (kIsWeb) {
     await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
   }
-
   runApp(const InvestUp());
 }
 
@@ -33,17 +31,25 @@ class InvestUp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
       home: const AuthGate(),
-      routes: {
-        '/welcome': (context) => const WelcomeScreen(),
-        '/login': (context) => const Login(title: "Invest Up"),
-        '/home': (context) => const HomePage(),
-      },
     );
   }
 }
 
-class AuthGate extends StatelessWidget {
+class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
+
+  @override
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+  bool mostrarLogin = false;
+
+  void irParaLogin() {
+    setState(() {
+      mostrarLogin = true;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,7 +66,11 @@ class AuthGate extends StatelessWidget {
           return const HomePage();
         }
 
-        return const WelcomeScreen();
+        if (mostrarLogin) {
+          return const Login(title: "Invest Up");
+        } else {
+          return WelcomeScreen(aoFinalizar: irParaLogin);
+        }
       },
     );
   }

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:invest_up/theme/app_theme.dart';
 import 'package:lottie/lottie.dart';
 
 class WelcomeScreen extends StatefulWidget {
-  const WelcomeScreen({super.key});
+  final VoidCallback aoFinalizar;
+
+  const WelcomeScreen({super.key, required this.aoFinalizar});
 
   @override
   State<WelcomeScreen> createState() => _WelcomeScreenState();
@@ -19,21 +19,21 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       'isFirstPage': true,
       'title': 'InvestUp!',
       'description':
-          'O futuro do investimento em startups na palma da sua mão. Conecte-se com grandes ideias inovadoras',
+          'O futuro do investimento em startups na palma da sua mão. Conecte-se com grandes ideias inovadoras.',
     },
     {
       'isFirstPage': false,
       'lottiePath': 'assets/startup.json',
       'title': 'Negocie Tokens',
       'description':
-          'Simule a compra, venda e troca de frações/tokens das startups mais promissoras do ecossistema de inovação',
+          'Simule a compra, venda e troca de frações/tokens das startups mais promissoras do ecossistema de inovação.',
     },
     {
       'isFirstPage': false,
       'lottiePath': 'assets/dashboard.json',
       'title': 'Dashboard Inteligente',
       'description':
-          'Monitore a valorização dos seus investimentos, saldo em conta e tendências de mercado com gráficos em tempo real',
+          'Monitore a valorização dos seus investimentos, saldo em conta e tendências de mercado com gráficos em tempo real.',
     },
   ];
 
@@ -44,7 +44,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   }
 
   void _finalizarOnboarding() {
-    Navigator.pushReplacementNamed(context, '/login');
+    widget.aoFinalizar();
   }
 
   @override
@@ -72,10 +72,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   child: _currentPage != _onboardingData.length - 1
                       ? TextButton(
                           onPressed: _finalizarOnboarding,
-                          child: Text(
+                          child: const Text(
                             'Pular',
-                            style: GoogleFonts.lato(
-                              color: Colors.white.withValues(alpha: 0.6),
+                            style: TextStyle(
+                              color: Colors.white54,
                               fontSize: 14,
                             ),
                           ),
@@ -87,49 +87,71 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               Expanded(
                 child: PageView.builder(
                   controller: _pageController,
-                  onPageChanged: (int page) {
-                    setState(() {
-                      _currentPage = page;
-                    });
-                  },
+                  onPageChanged: (int page) =>
+                      setState(() => _currentPage = page),
                   itemCount: _onboardingData.length,
                   itemBuilder: (context, index) {
                     final item = _onboardingData[index];
+                    bool isFirst = item['isFirstPage'] == true;
+
                     return Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 32.0),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          if (item['isFirstPage'] == true)
-                            Image.asset('assets/Logo.png', height: 180)
-                          else
+                          if (isFirst) ...[
+                            Padding(
+                              padding: const EdgeInsets.only(top: 20.0),
+                              child: Image.asset(
+                                'assets/Logo.png',
+                                height: 200,
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            const Text(
+                              'InvestUp!',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 36,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Powered by MesclaInvest',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.white.withValues(alpha: 0.4),
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ] else ...[
                             Lottie.asset(
                               item['lottiePath'],
                               height: 220,
                               fit: BoxFit.contain,
                             ),
-                          const SizedBox(height: 40),
-
-                          Text(
-                            item['title'],
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.lato(
-                              fontSize: 32,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.white,
-                              letterSpacing: 1.2,
+                            const SizedBox(height: 40),
+                            Text(
+                              item['title'],
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 16),
+                          ],
 
+                          const SizedBox(height: 20),
                           Text(
                             item['description'],
                             textAlign: TextAlign.center,
-                            style: GoogleFonts.lato(
+                            style: TextStyle(
                               fontSize: 16,
                               color: Colors.white.withValues(alpha: 0.7),
                               height: 1.6,
-                              fontWeight: FontWeight.w300,
                             ),
                           ),
                         ],
@@ -155,14 +177,13 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                           decoration: BoxDecoration(
                             color: _currentPage == index
                                 ? const Color(0xFFE0AAFF)
-                                : Colors.white.withValues(alpha: 0.25),
+                                : Colors.white24,
                             borderRadius: BorderRadius.circular(4),
                           ),
                         ),
                       ),
                     ),
                     const SizedBox(height: 32),
-
                     SizedBox(
                       width: double.infinity,
                       height: 55,
@@ -182,14 +203,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          elevation: 6,
-                          shadowColor: AppTheme.accent.withValues(alpha: 0.3),
                         ),
                         child: Ink(
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(12),
                             gradient: const LinearGradient(
-                              colors: [AppTheme.accent, AppTheme.accentSoft],
+                              colors: [Color(0xFF8B5CF6), Color(0xFFC4B5FD)],
                             ),
                           ),
                           child: Center(
@@ -200,11 +219,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                   _currentPage == _onboardingData.length - 1
                                       ? 'Começar a Investir'
                                       : 'Próximo',
-                                  style: GoogleFonts.lato(
+                                  style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
-                                    letterSpacing: 0.5,
                                   ),
                                 ),
                                 const SizedBox(width: 8),
