@@ -9,7 +9,8 @@ import 'editar_perfil_screen.dart';
 class ConfiguracoesScreen extends StatelessWidget {
   const ConfiguracoesScreen({super.key});
 
-  static String _asText(dynamic value, {String fallback = ''}) {
+  // Método auxiliar para tratar valores nulos ou vazios
+  static String _asText(dynamic value, {String fallback = ''}) { 
     if (value == null) {
       return fallback;
     }
@@ -21,15 +22,17 @@ class ConfiguracoesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
 
+     // Estrutura principal da tela
     return Scaffold(
       backgroundColor: const Color(0xFF0D1117),
       body: user == null
           ? const Center(
               child: Text(
-                'Usuario nao autenticado',
+                'Usuário não autenticado',
                 style: TextStyle(color: Colors.white),
               ),
             )
+            // Escuta alterações em tempo real do Firestore
           : StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
               stream: FirebaseFirestore.instance
                   .collection('users')
@@ -43,12 +46,12 @@ class ConfiguracoesScreen extends StatelessWidget {
                 if (snapshot.hasError) {
                   return const Center(
                     child: Text(
-                      'Erro ao carregar dados do usuario',
+                      'Erro ao carregar dados do usuário',
                       style: TextStyle(color: Colors.white),
                     ),
                   );
                 }
-
+                // Recupera os dados do Firestore
                 if (!snapshot.hasData || !snapshot.data!.exists) {
                   return _buildMissingProfile(context, user);
                 }
@@ -60,18 +63,18 @@ class ConfiguracoesScreen extends StatelessWidget {
                 );
                 final email = _asText(
                   data['email'] ?? user.email,
-                  fallback: 'E-mail nao informado',
+                  fallback: 'E-mail não informado',
                 );
                 final telefone = _asText(
                   data['telefone'] ?? data['phone'],
-                  fallback: 'Telefone nao informado',
+                  fallback: 'Telefone não informado',
                 );
-                final cpf = _asText(data['cpf'], fallback: 'CPF nao informado');
+                final cpf = _asText(data['cpf'], fallback: 'CPF não informado');
                 final inicial = nome.isEmpty ? 'I' : nome[0].toUpperCase();
-
+                // Estrutura principal da tela
                 return Column(
                   children: [
-                    Container(
+                    Container(   // Cabeçalho superior
                       width: double.infinity,
                       padding: const EdgeInsets.only(
                         top: 60,
@@ -86,30 +89,30 @@ class ConfiguracoesScreen extends StatelessWidget {
                           end: Alignment.bottomRight,
                         ),
                       ),
-                      child: Column(
+                      child: Column(  // Conteúdo interno do cabeçalho
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              IconButton(
+                              IconButton( // Botão de voltar
                                 icon: const Icon(
                                   Icons.arrow_back,
                                   color: Colors.white,
                                 ),
-                                onPressed: () => Navigator.pop(context),
+                                onPressed: () => Navigator.pop(context), // Retorna para tela anterior
                               ),
-                              Row(
+                              Row(     // Linha do título
                                 children: [
                                   const Text(
-                                    'Configuracoes',
+                                    'Configurações',
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 22,
                                     ),
                                   ),
                                   const SizedBox(width: 10),
-                                  IconButton(
+                                  IconButton(   // Botão de editar perfil
                                     icon: const Icon(
                                       Icons.edit,
                                       color: Colors.white,
@@ -130,7 +133,7 @@ class ConfiguracoesScreen extends StatelessWidget {
                             ],
                           ),
                           const SizedBox(height: 20),
-                          Container(
+                          Container(  // Card do usuário
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(16),
@@ -138,8 +141,8 @@ class ConfiguracoesScreen extends StatelessWidget {
                             ),
                             child: Row(
                               children: [
-                                CircleAvatar(
-                                  radius: 30,
+                                CircleAvatar( // Avatar do usuário
+                                  radius: 30,  // Tamanho do avatar
                                   backgroundColor: Colors.white24,
                                   child: Text(
                                     inicial,
@@ -147,7 +150,7 @@ class ConfiguracoesScreen extends StatelessWidget {
                                   ),
                                 ),
                                 const SizedBox(width: 16),
-                                Expanded(
+                                Expanded(   // Área expandida dos textos
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
@@ -162,7 +165,7 @@ class ConfiguracoesScreen extends StatelessWidget {
                                       ),
                                       Text(
                                         email,
-                                        overflow: TextOverflow.ellipsis,
+                                        overflow: TextOverflow.ellipsis, // Evita overflow
                                         style: const TextStyle(
                                           color: Colors.white70,
                                         ),
@@ -176,25 +179,26 @@ class ConfiguracoesScreen extends StatelessWidget {
                         ],
                       ),
                     ),
-                    Expanded(
+                    Expanded(  // Parte inferior da tela
                       child: Padding(
                         padding: const EdgeInsets.all(16),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'Informacoes da conta',
+                              'Informações da conta',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 18,
                               ),
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 16), // Espaço vertical
+                            //Cards
                             buildItem(Icons.email, 'E-mail', email),
                             buildItem(Icons.phone, 'Telefone', telefone),
                             buildItem(Icons.badge, 'CPF', cpf),
-                            const Spacer(),
-                            ElevatedButton(
+                            const Spacer(), // Empurra botão para baixo
+                            ElevatedButton( // Botão de excluir conta
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.red,
                                 minimumSize: const Size(double.infinity, 50),
@@ -212,29 +216,29 @@ class ConfiguracoesScreen extends StatelessWidget {
             ),
     );
   }
-
+  // Tela caso perfil não exista
   Widget _buildMissingProfile(BuildContext context, User user) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(24), // Espaçamento interno
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisSize: MainAxisSize.min, // Ajusta tamanho da coluna
           children: [
             const Text(
-              'Perfil nao encontrado',
+              'Perfil não encontrado',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.white, fontSize: 20),
             ),
             const SizedBox(height: 10),
-            Text(
-              'Nao existe documento em users/${user.uid}.',
+            Text(  // Mostra caminho do documento
+              'Não existe documento em users/${user.uid}.',
               textAlign: TextAlign.center,
               style: const TextStyle(color: Colors.white70),
             ),
             const SizedBox(height: 16),
-            ElevatedButton(
+            ElevatedButton(  // Botão para criar perfil
               onPressed: () async {
-                await FirebaseFirestore.instance
+                await FirebaseFirestore.instance // Cria documento do usuário
                     .collection('users')
                     .doc(user.uid)
                     .set({
@@ -254,24 +258,24 @@ class ConfiguracoesScreen extends StatelessWidget {
       ),
     );
   }
-
-  Future<void> _confirmDeleteAccount(BuildContext context) async {
+   // Método que exibe confirmação antes de excluir a conta
+  Future<void> _confirmDeleteAccount(BuildContext context) async { 
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       return;
     }
 
-    showDialog<void>(
+    showDialog<void>( // Exibe caixa de diálogo
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Excluir conta'),
         content: const Text(
           'Tem certeza que deseja excluir sua conta?\n\n'
-          'Voce perdera:\n'
+          'Você perdera:\n'
           '- Seus dados\n'
-          '- Tokens/creditos\n'
+          '- Tokens/créditos\n'
           '- Saldo em conta\n\n'
-          'Essa acao e irreversivel.',
+          'Essa ação é irreversivel.',
         ),
         actions: [
           TextButton(
@@ -289,14 +293,14 @@ class ConfiguracoesScreen extends StatelessWidget {
       ),
     );
   }
-
+  // Método responsável por excluir conta
   Future<void> _deleteAccount(BuildContext context, User user) async {
     final password = await _askPassword(context, user.email);
-    if (password == null) {
+    if (password == null) { // Caso usuário cancele
       return;
     }
 
-    if (!context.mounted) {
+    if (!context.mounted) { // Verifica se contexto ainda existe
       return;
     }
 
@@ -307,48 +311,48 @@ class ConfiguracoesScreen extends StatelessWidget {
       if (email == null || email.isEmpty) {
         throw FirebaseAuthException(code: 'missing-email');
       }
-
+       // Cria credencial para reautenticação
       final credential = EmailAuthProvider.credential(
         email: email,
         password: password,
       );
-
+     // Reautentica usuário
       await user.reauthenticateWithCredential(credential);
       await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
           .delete();
-      await user.delete();
+      await user.delete(); // Exclui conta do Firebase Auth
 
       if (!context.mounted) {
         return;
       }
 
-      Navigator.of(context, rootNavigator: true).pop();
-      Navigator.of(context).pushAndRemoveUntil(
+      Navigator.of(context, rootNavigator: true).pop(); // Fecha loading
+      Navigator.of(context).pushAndRemoveUntil( // Redireciona para login
         MaterialPageRoute(builder: (_) => const Login(title: 'Invest Up')),
-        (route) => false,
+        (route) => false, // Remove rotas anteriores
       );
-    } on FirebaseAuthException catch (e) {
+    } on FirebaseAuthException catch (e) { // Tratamento de erros do Firebase
       if (context.mounted) {
         Navigator.of(context, rootNavigator: true).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context).showSnackBar( // Exibe mensagem de erro
           SnackBar(content: Text(_deleteAccountErrorMessage(e.code))),
         );
       }
-    } catch (_) {
+    } catch (_) { // Tratamento genérico
       if (context.mounted) {
         Navigator.of(context, rootNavigator: true).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Nao foi possivel excluir a conta.')),
+        ScaffoldMessenger.of(context).showSnackBar( // Mostra erro padrão
+          const SnackBar(content: Text('Não foi possivel excluir a conta.')),
         );
       }
     }
   }
-
+  // Método que solicita senha
   Future<String?> _askPassword(BuildContext context, String? email) {
     final passwordController = TextEditingController();
-    final formKey = GlobalKey<FormState>();
+    final formKey = GlobalKey<FormState>(); // Chave do formulário
 
     return showDialog<String>(
       context: context,
@@ -362,15 +366,15 @@ class ConfiguracoesScreen extends StatelessWidget {
             children: [
               Text(
                 email == null || email.isEmpty
-                    ? 'Digite sua senha para confirmar a exclusao.'
-                    : 'Digite a senha da conta $email para confirmar a exclusao.',
+                    ? 'Digite sua senha para confirmar a exclusão.'
+                    : 'Digite a senha da conta $email para confirmar a exclusão.',
               ),
               const SizedBox(height: 16),
-              TextFormField(
+              TextFormField( // Campo de senha
                 controller: passwordController,
-                obscureText: true,
+                obscureText: true, // Oculta caracteres
                 decoration: const InputDecoration(labelText: 'Senha'),
-                validator: (value) {
+                validator: (value) { // Validação do campo
                   if (value == null || value.trim().isEmpty) {
                     return 'Informe sua senha';
                   }
@@ -380,14 +384,14 @@ class ConfiguracoesScreen extends StatelessWidget {
             ],
           ),
         ),
-        actions: [
+        actions: [ // Botões do dialog
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancelar'),
           ),
           TextButton(
             onPressed: () {
-              if (formKey.currentState?.validate() ?? false) {
+              if (formKey.currentState?.validate() ?? false) { // Retorna senha digitada
                 Navigator.pop(dialogContext, passwordController.text);
               }
             },
@@ -395,17 +399,17 @@ class ConfiguracoesScreen extends StatelessWidget {
           ),
         ],
       ),
-    ).whenComplete(passwordController.dispose);
+    ).whenComplete(passwordController.dispose); // Libera memória do controller
   }
-
-  void _showLoadingDialog(BuildContext context) {
+   // Dialog de carregamento
+  void _showLoadingDialog(BuildContext context) { 
     showDialog<void>(
       context: context,
-      barrierDismissible: false,
+      barrierDismissible: false, // Impede fechar clicando fora
       builder: (_) => const AlertDialog(
         content: Row(
           children: [
-            CircularProgressIndicator(),
+            CircularProgressIndicator(), // Indicador loading
             SizedBox(width: 16),
             Expanded(child: Text('Excluindo conta...')),
           ],
@@ -413,9 +417,9 @@ class ConfiguracoesScreen extends StatelessWidget {
       ),
     );
   }
-
-  String _deleteAccountErrorMessage(String code) {
-    switch (code) {
+  // Método que retorna mensagens de erro
+  String _deleteAccountErrorMessage(String code) { 
+    switch (code) { // Verifica código do erro
       case 'wrong-password':
       case 'invalid-credential':
         return 'Senha incorreta. Tente novamente.';
@@ -424,12 +428,12 @@ class ConfiguracoesScreen extends StatelessWidget {
       case 'requires-recent-login':
         return 'Entre novamente antes de excluir a conta.';
       case 'missing-email':
-        return 'Nao foi possivel confirmar o e-mail desta conta.';
+        return 'Não foi possivel confirmar o e-mail desta conta.';
       default:
-        return 'Nao foi possivel excluir a conta.';
+        return 'Não foi possivel excluir a conta.';
     }
   }
-
+  // Widget reutilizável para itens da conta
   Widget buildItem(IconData icon, String title, String value) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),

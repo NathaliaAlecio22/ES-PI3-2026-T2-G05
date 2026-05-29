@@ -53,17 +53,17 @@ class _SignUpState extends State<SignUp> {
     }
 
     if (!_isValidEmail(emailText)) {
-      _alertUser('E-mail invalido');
+      _alertUser('E-mail inválido');
       return;
     }
 
     if (!_isValidCPF(cpfText)) {
-      _alertUser('CPF invalido');
+      _alertUser('CPF inválido');
       return;
     }
 
     if (!_isValidPhone(telText)) {
-      _alertUser('Telefone invalido');
+      _alertUser('Telefone inválido');
       return;
     }
 
@@ -129,15 +129,15 @@ class _SignUpState extends State<SignUp> {
   String _authErrorMessage(String code) {
     switch (code) {
       case 'email-already-in-use':
-        return 'E-mail ja cadastrado';
+        return 'E-mail já cadastrado';
       case 'invalid-email':
-        return 'E-mail invalido';
+        return 'E-mail inválido';
       case 'weak-password':
         return 'A senha deve ter pelo menos 6 caracteres';
       case 'operation-not-allowed':
-        return 'Cadastro por e-mail e senha nao esta habilitado';
+        return 'Cadastro por e-mail e senha não esta habilitado';
       case 'network-request-failed':
-        return 'Erro de conexao. Verifique sua internet.';
+        return 'Erro de conexão. Verifique sua internet.';
       default:
         return 'Erro ao cadastrar';
     }
@@ -312,7 +312,7 @@ class _SignUpState extends State<SignUp> {
                         ),
                       ),
                       Text(
-                        'Preencha seus dados para comecar',
+                        'Preencha seus dados para começar',
                         textAlign: TextAlign.center,
                         style: GoogleFonts.lato(
                           textStyle: TextStyle(
