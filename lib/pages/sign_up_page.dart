@@ -37,8 +37,8 @@ class _SignUpState extends State<SignUp> {
   Future<void> verifySignUp() async {
     final nameText = _nameController.text.trim();
     final emailText = _emailController.text.trim();
-    final cpfText = _cpfController.text.trim();
-    final telText = _telController.text.trim();
+    final cpfText = _onlyNumbers(_cpfController.text);
+    final telText = _onlyNumbers(_telController.text);
     final passText = _passController.text.trim();
     final passConfirmText = _passConfirmController.text.trim();
 
@@ -53,17 +53,17 @@ class _SignUpState extends State<SignUp> {
     }
 
     if (!_isValidEmail(emailText)) {
-      _alertUser('E-mail inválido');
+      _alertUser('E-mail invalido');
       return;
     }
 
     if (!_isValidCPF(cpfText)) {
-      _alertUser('CPF inválido');
+      _alertUser('CPF invalido');
       return;
     }
 
     if (!_isValidPhone(telText)) {
-      _alertUser('Telefone inválido');
+      _alertUser('Telefone invalido');
       return;
     }
 
@@ -72,14 +72,29 @@ class _SignUpState extends State<SignUp> {
       return;
     }
 
+    User? createdUser;
+
     try {
-      //  1. Criar usuário no Auth
       final userCredential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(email: emailText, password: passText);
 
-      final uid = userCredential.user!.uid;
+      createdUser = userCredential.user;
+      final uid = createdUser!.uid;
 
-      // 2. Salvar dados no Firestore
+      final cpfExists = await _hasRegisteredValue('cpf', cpfText);
+      if (cpfExists) {
+        await createdUser.delete();
+        _alertUser('CPF já cadastrado');
+        return;
+      }
+
+      final phoneExists = await _hasRegisteredValue('telefone', telText);
+      if (phoneExists) {
+        await createdUser.delete();
+        _alertUser('Telefone já cadastrado');
+        return;
+      }
+
       await FirebaseFirestore.instance.collection('users').doc(uid).set({
         'nome': nameText,
         'email': emailText,
@@ -90,16 +105,60 @@ class _SignUpState extends State<SignUp> {
         'createdAt': Timestamp.now(),
       });
 
-      // 3. Ir para Home
+      if (!mounted) {
+        return;
+      }
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const HomePage()),
       );
     } on FirebaseAuthException catch (e) {
-      _alertUser(e.message ?? 'Erro ao cadastrar');
+      if (createdUser != null) {
+        await _deleteCreatedUser(createdUser);
+      }
+      _alertUser(_authErrorMessage(e.code));
     } catch (e) {
+      if (createdUser != null) {
+        await _deleteCreatedUser(createdUser);
+      }
       _alertUser('Erro inesperado');
     }
+  }
+
+  String _authErrorMessage(String code) {
+    switch (code) {
+      case 'email-already-in-use':
+        return 'E-mail ja cadastrado';
+      case 'invalid-email':
+        return 'E-mail invalido';
+      case 'weak-password':
+        return 'A senha deve ter pelo menos 6 caracteres';
+      case 'operation-not-allowed':
+        return 'Cadastro por e-mail e senha nao esta habilitado';
+      case 'network-request-failed':
+        return 'Erro de conexao. Verifique sua internet.';
+      default:
+        return 'Erro ao cadastrar';
+    }
+  }
+
+  Future<void> _deleteCreatedUser(User? user) async {
+    try {
+      await user?.delete();
+    } catch (_) {
+      await FirebaseAuth.instance.signOut();
+    }
+  }
+
+  Future<bool> _hasRegisteredValue(String field, String value) async {
+    final result = await FirebaseFirestore.instance
+        .collection('users')
+        .where(field, isEqualTo: value)
+        .limit(1)
+        .get();
+
+    return result.docs.isNotEmpty;
   }
 
   bool _isValidEmail(String email) {
@@ -108,8 +167,12 @@ class _SignUpState extends State<SignUp> {
     return emailRegex.hasMatch(normalized);
   }
 
+  String _onlyNumbers(String value) {
+    return value.replaceAll(RegExp(r'[^0-9]'), '');
+  }
+
   bool _isValidPhone(String phone) {
-    final numbers = phone.replaceAll(RegExp(r'[^0-9]'), '');
+    final numbers = _onlyNumbers(phone);
     if (numbers.length < 10 || numbers.length > 11) {
       return false;
     }
@@ -120,7 +183,7 @@ class _SignUpState extends State<SignUp> {
   }
 
   bool _isValidCPF(String cpf) {
-    final numbers = cpf.replaceAll(RegExp(r'[^0-9]'), '');
+    final numbers = _onlyNumbers(cpf);
 
     if (numbers.length != 11) {
       return false;
@@ -191,7 +254,6 @@ class _SignUpState extends State<SignUp> {
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
             Image.asset('assets/Logo.png', height: 72),
-
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -205,7 +267,6 @@ class _SignUpState extends State<SignUp> {
                     ),
                   ),
                 ),
-
                 Text(
                   'Powered by MesclaInvest',
                   style: GoogleFonts.lato(
@@ -221,9 +282,7 @@ class _SignUpState extends State<SignUp> {
           ],
         ),
       ),
-
       backgroundColor: AppTheme.background,
-
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -243,7 +302,6 @@ class _SignUpState extends State<SignUp> {
                   child: Column(
                     children: [
                       SizedBox(height: 5),
-
                       Text(
                         'Criar conta',
                         style: GoogleFonts.lato(
@@ -253,9 +311,8 @@ class _SignUpState extends State<SignUp> {
                           ),
                         ),
                       ),
-
                       Text(
-                        'Preencha seus dados para começar',
+                        'Preencha seus dados para comecar',
                         textAlign: TextAlign.center,
                         style: GoogleFonts.lato(
                           textStyle: TextStyle(
@@ -264,9 +321,7 @@ class _SignUpState extends State<SignUp> {
                           ),
                         ),
                       ),
-
                       SizedBox(height: 20),
-
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
@@ -279,9 +334,7 @@ class _SignUpState extends State<SignUp> {
                           ),
                         ),
                       ),
-
                       SizedBox(height: 7),
-
                       SizedBox(
                         width: 700,
                         height: 40,
@@ -299,9 +352,7 @@ class _SignUpState extends State<SignUp> {
                           ),
                         ),
                       ),
-
                       SizedBox(height: 15),
-
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
@@ -314,9 +365,7 @@ class _SignUpState extends State<SignUp> {
                           ),
                         ),
                       ),
-
                       SizedBox(height: 7),
-
                       SizedBox(
                         width: 700,
                         height: 40,
@@ -337,9 +386,7 @@ class _SignUpState extends State<SignUp> {
                           ),
                         ),
                       ),
-
                       SizedBox(height: 15),
-
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
@@ -352,9 +399,7 @@ class _SignUpState extends State<SignUp> {
                           ),
                         ),
                       ),
-
                       SizedBox(height: 7),
-
                       SizedBox(
                         width: 700,
                         height: 40,
@@ -376,9 +421,7 @@ class _SignUpState extends State<SignUp> {
                           ),
                         ),
                       ),
-
                       SizedBox(height: 15),
-
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
@@ -391,9 +434,7 @@ class _SignUpState extends State<SignUp> {
                           ),
                         ),
                       ),
-
                       SizedBox(height: 7),
-
                       SizedBox(
                         width: 700,
                         height: 40,
@@ -415,9 +456,7 @@ class _SignUpState extends State<SignUp> {
                           ),
                         ),
                       ),
-
                       SizedBox(height: 15),
-
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
@@ -430,9 +469,7 @@ class _SignUpState extends State<SignUp> {
                           ),
                         ),
                       ),
-
                       SizedBox(height: 7),
-
                       SizedBox(
                         width: 700,
                         height: 40,
@@ -451,9 +488,7 @@ class _SignUpState extends State<SignUp> {
                           ),
                         ),
                       ),
-
                       SizedBox(height: 15),
-
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
@@ -466,9 +501,7 @@ class _SignUpState extends State<SignUp> {
                           ),
                         ),
                       ),
-
                       SizedBox(height: 7),
-
                       SizedBox(
                         width: 700,
                         height: 40,
@@ -487,9 +520,7 @@ class _SignUpState extends State<SignUp> {
                           ),
                         ),
                       ),
-
                       SizedBox(height: 35),
-
                       SizedBox(
                         width: 700,
                         height: 50,
@@ -504,9 +535,7 @@ class _SignUpState extends State<SignUp> {
                           ),
                         ),
                       ),
-
                       SizedBox(height: 35),
-
                       TextButton(
                         onPressed: goToLogIn,
                         style: TextButton.styleFrom(
@@ -523,7 +552,6 @@ class _SignUpState extends State<SignUp> {
                           ),
                         ),
                       ),
-
                       SizedBox(height: 35),
                     ],
                   ),
