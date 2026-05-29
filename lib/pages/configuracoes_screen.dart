@@ -26,7 +26,7 @@ class ConfiguracoesScreen extends StatelessWidget {
       body: user == null
           ? const Center(
               child: Text(
-                'Usuário não autênticado',
+                'Usuario nao autenticado',
                 style: TextStyle(color: Colors.white),
               ),
             )
@@ -43,7 +43,7 @@ class ConfiguracoesScreen extends StatelessWidget {
                 if (snapshot.hasError) {
                   return const Center(
                     child: Text(
-                      'Erro ao carregar dados do usuário',
+                      'Erro ao carregar dados do usuario',
                       style: TextStyle(color: Colors.white),
                     ),
                   );
@@ -60,13 +60,13 @@ class ConfiguracoesScreen extends StatelessWidget {
                 );
                 final email = _asText(
                   data['email'] ?? user.email,
-                  fallback: 'E-mail não informado',
+                  fallback: 'E-mail nao informado',
                 );
                 final telefone = _asText(
                   data['telefone'] ?? data['phone'],
-                  fallback: 'Telefone não informado',
+                  fallback: 'Telefone nao informado',
                 );
-                final cpf = _asText(data['cpf'], fallback: 'CPF não informado');
+                final cpf = _asText(data['cpf'], fallback: 'CPF nao informado');
                 final inicial = nome.isEmpty ? 'I' : nome[0].toUpperCase();
 
                 return Column(
@@ -102,7 +102,7 @@ class ConfiguracoesScreen extends StatelessWidget {
                               Row(
                                 children: [
                                   const Text(
-                                    'Configurações',
+                                    'Configuracoes',
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 22,
@@ -183,7 +183,7 @@ class ConfiguracoesScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'Informações da conta',
+                              'Informacoes da conta',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 18,
@@ -221,7 +221,7 @@ class ConfiguracoesScreen extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text(
-              'Perfil não encontrado',
+              'Perfil nao encontrado',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.white, fontSize: 20),
             ),
@@ -261,61 +261,173 @@ class ConfiguracoesScreen extends StatelessWidget {
       return;
     }
 
-    showDialog(
+    showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Excluir conta'),
         content: const Text(
-          'Tem certeza que deseja excluir sua conta?\n\nVocê perdera:\n- Seus dados\n- Tokens/créditos\n- Saldo em conta\n\nEssa ação é irreversivel.',
+          'Tem certeza que deseja excluir sua conta?\n\n'
+          'Voce perdera:\n'
+          '- Seus dados\n'
+          '- Tokens/creditos\n'
+          '- Saldo em conta\n\n'
+          'Essa acao e irreversivel.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancelar'),
           ),
           TextButton(
             onPressed: () async {
-              final navigator = Navigator.of(context);
-              final messenger = ScaffoldMessenger.of(context);
-
-              try {
-                await FirebaseFirestore.instance
-                    .collection('users')
-                    .doc(user.uid)
-                    .delete();
-                await user.delete();
-
-                navigator.pushAndRemoveUntil(
-                  MaterialPageRoute(
-                    builder: (_) => const Login(title: 'Invest Up'),
-                  ),
-                  (route) => false,
-                );
-              } on FirebaseAuthException catch (e) {
-                navigator.pop();
-                messenger.showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      e.code == 'requires-recent-login'
-                          ? 'Entre novamente antes de excluir a conta.'
-                          : 'Não foi possivel excluir a conta.',
-                    ),
-                  ),
-                );
-              } catch (_) {
-                navigator.pop();
-                messenger.showSnackBar(
-                  const SnackBar(
-                    content: Text('Não foi possivel excluir a conta.'),
-                  ),
-                );
-              }
+              Navigator.pop(dialogContext);
+              await _deleteAccount(context, user);
             },
             child: const Text('Excluir', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _deleteAccount(BuildContext context, User user) async {
+    final password = await _askPassword(context, user.email);
+    if (password == null) {
+      return;
+    }
+
+    if (!context.mounted) {
+      return;
+    }
+
+    _showLoadingDialog(context);
+
+    try {
+      final email = user.email;
+      if (email == null || email.isEmpty) {
+        throw FirebaseAuthException(code: 'missing-email');
+      }
+
+      final credential = EmailAuthProvider.credential(
+        email: email,
+        password: password,
+      );
+
+      await user.reauthenticateWithCredential(credential);
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .delete();
+      await user.delete();
+
+      if (!context.mounted) {
+        return;
+      }
+
+      Navigator.of(context, rootNavigator: true).pop();
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const Login(title: 'Invest Up')),
+        (route) => false,
+      );
+    } on FirebaseAuthException catch (e) {
+      if (context.mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(_deleteAccountErrorMessage(e.code))),
+        );
+      }
+    } catch (_) {
+      if (context.mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Nao foi possivel excluir a conta.')),
+        );
+      }
+    }
+  }
+
+  Future<String?> _askPassword(BuildContext context, String? email) {
+    final passwordController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    return showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Confirme sua senha'),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                email == null || email.isEmpty
+                    ? 'Digite sua senha para confirmar a exclusao.'
+                    : 'Digite a senha da conta $email para confirmar a exclusao.',
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: passwordController,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: 'Senha'),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Informe sua senha';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () {
+              if (formKey.currentState?.validate() ?? false) {
+                Navigator.pop(dialogContext, passwordController.text);
+              }
+            },
+            child: const Text('Confirmar'),
+          ),
+        ],
+      ),
+    ).whenComplete(passwordController.dispose);
+  }
+
+  void _showLoadingDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 16),
+            Expanded(child: Text('Excluindo conta...')),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _deleteAccountErrorMessage(String code) {
+    switch (code) {
+      case 'wrong-password':
+      case 'invalid-credential':
+        return 'Senha incorreta. Tente novamente.';
+      case 'too-many-requests':
+        return 'Muitas tentativas. Aguarde um pouco e tente novamente.';
+      case 'requires-recent-login':
+        return 'Entre novamente antes de excluir a conta.';
+      case 'missing-email':
+        return 'Nao foi possivel confirmar o e-mail desta conta.';
+      default:
+        return 'Nao foi possivel excluir a conta.';
+    }
   }
 
   Widget buildItem(IconData icon, String title, String value) {
