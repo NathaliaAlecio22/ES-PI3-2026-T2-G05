@@ -10,15 +10,14 @@ import 'package:invest_up/theme/app_theme.dart';
 import 'firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:invest_up/pages/welcome_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   if (kIsWeb) {
     await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
   }
-
   runApp(const InvestUp());
 }
 
@@ -36,8 +35,21 @@ class InvestUp extends StatelessWidget {
   }
 }
 
-class AuthGate extends StatelessWidget {
+class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
+
+  @override
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+  bool mostrarLogin = false;
+
+  void irParaLogin() {
+    setState(() {
+      mostrarLogin = true;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,7 +66,11 @@ class AuthGate extends StatelessWidget {
           return const HomePage();
         }
 
-        return const Login(title: "Invest Up");
+        if (mostrarLogin) {
+          return const Login(title: "Invest Up");
+        } else {
+          return WelcomeScreen(aoFinalizar: irParaLogin);
+        }
       },
     );
   }
