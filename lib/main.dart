@@ -1,3 +1,5 @@
+// ALICE BESERRA - 24794521
+
 // git push --set-upstream origin feature/autenticacao
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
@@ -5,19 +7,21 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:invest_up/pages/home_page.dart';
 import 'package:invest_up/pages/sign_up_page.dart';
 import 'package:invest_up/pages/recover_password.dart';
+import 'package:invest_up/pages/mfa.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:invest_up/theme/app_theme.dart';
 import 'firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:invest_up/pages/welcome_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   if (kIsWeb) {
     await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
   }
+
   runApp(const InvestUp());
 }
 
@@ -35,21 +39,8 @@ class InvestUp extends StatelessWidget {
   }
 }
 
-class AuthGate extends StatefulWidget {
+class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
-
-  @override
-  State<AuthGate> createState() => _AuthGateState();
-}
-
-class _AuthGateState extends State<AuthGate> {
-  bool mostrarLogin = false;
-
-  void irParaLogin() {
-    setState(() {
-      mostrarLogin = true;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -66,11 +57,7 @@ class _AuthGateState extends State<AuthGate> {
           return const HomePage();
         }
 
-        if (mostrarLogin) {
-          return const Login(title: "Invest Up");
-        } else {
-          return WelcomeScreen(aoFinalizar: irParaLogin);
-        }
+        return const Login(title: "Invest Up");
       },
     );
   }
@@ -107,22 +94,40 @@ class _LoginState extends State<Login> {
     }
 
     try {
-      final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+      final credential =
+          await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: emailText,
         password: passwordText,
       );
 
       final user = credential.user;
+
       if (user != null) {
         await _ensureUserProfile(user);
       }
 
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Login realizado.')));
-      }
-    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomePage()),
+      );
+    }
+
+    on FirebaseAuthMultiFactorException catch (e) {
+      if (!mounted) return;
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => MfaPage(
+            resolver: e.resolver,
+          ),
+        ),
+      );
+    }
+
+    on FirebaseAuthException catch (e) {
       _alertUser(e.message ?? 'Erro ao fazer login');
     }
   }

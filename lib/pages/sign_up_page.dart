@@ -1,3 +1,6 @@
+// ALICE BESERRA - 24794521
+
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -6,6 +9,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:invest_up/pages/home_page.dart';
 import 'package:invest_up/theme/app_theme.dart';
+import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
 class SignUp extends StatefulWidget {
   const SignUp({super.key});
@@ -30,24 +34,33 @@ class _SignUpState extends State<SignUp> {
     _telController.dispose();
     _passController.dispose();
     _passConfirmController.dispose();
-
     super.dispose();
   }
+
+  final cpfFormatter = MaskTextInputFormatter(
+    mask: '###.###.###-##',
+    filter: {"#": RegExp(r'[0-9]')},
+  );
+
+  final telefoneFormatter = MaskTextInputFormatter(
+    mask: '+55 ## #####-####',
+    filter: {"#": RegExp(r'[0-9]')},
+  );
 
   Future<void> verifySignUp() async {
     final nameText = _nameController.text.trim();
     final emailText = _emailController.text.trim();
-    final cpfText = _onlyNumbers(_cpfController.text);
-    final telText = _onlyNumbers(_telController.text);
-    final passText = _passController.text.trim();
-    final passConfirmText = _passConfirmController.text.trim();
+    final cpfText = _cpfController.text.trim();
+    final phoneText = _telController.text.trim();
+    final passwordText = _passController.text.trim();
+    final passwordConfirmText = _passConfirmController.text.trim();
 
     if (nameText.isEmpty ||
         emailText.isEmpty ||
         cpfText.isEmpty ||
-        telText.isEmpty ||
-        passText.isEmpty ||
-        passConfirmText.isEmpty) {
+        phoneText.isEmpty ||
+        passwordText.isEmpty ||
+        passwordConfirmText.isEmpty) {
       _alertUser('Preencha todos os campos');
       return;
     }
@@ -62,50 +75,46 @@ class _SignUpState extends State<SignUp> {
       return;
     }
 
-    if (!_isValidPhone(telText)) {
+    if (!_isValidPhone(phoneText)) {
       _alertUser('Telefone inválido');
       return;
     }
 
-    if (passText != passConfirmText) {
+    if (passwordText != passwordConfirmText) {
       _alertUser('As senhas não coincidem');
       return;
     }
 
-    User? createdUser;
-
     try {
       final userCredential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(email: emailText, password: passText);
+          .createUserWithEmailAndPassword(
+        email: emailText,
+        password: passwordText,
+      );
 
-      createdUser = userCredential.user;
-      final uid = createdUser!.uid;
+      final user = userCredential.user;
+      if (user == null) return;
 
-      final cpfExists = await _hasRegisteredValue('cpf', cpfText);
-      if (cpfExists) {
-        await createdUser.delete();
-        _alertUser('CPF já cadastrado');
-        return;
-      }
-
-      final phoneExists = await _hasRegisteredValue('telefone', telText);
-      if (phoneExists) {
-        await createdUser.delete();
-        _alertUser('Telefone já cadastrado');
-        return;
-      }
-
-      await FirebaseFirestore.instance.collection('users').doc(uid).set({
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .set({
         'nome': nameText,
-        'email': emailText,
         'cpf': cpfText,
-        'telefone': telText,
-        'saldo': 0,
-        'carteira': [],
-        'createdAt': Timestamp.now(),
+        'email': emailText,
+        'telefone': phoneText,
       });
 
-      if (!mounted) {
+      final enrolled = await _enroll2FA(user, phoneText);
+
+      if (!mounted) return;
+
+      if (!enrolled) {
+        await user.delete();
+        _alertUser(
+          'O cadastro requer verificação por SMS (2FA). '
+          'Por favor, tente novamente.',
+        );
         return;
       }
 
@@ -114,51 +123,121 @@ class _SignUpState extends State<SignUp> {
         MaterialPageRoute(builder: (_) => const HomePage()),
       );
     } on FirebaseAuthException catch (e) {
-      if (createdUser != null) {
-        await _deleteCreatedUser(createdUser);
-      }
-      _alertUser(_authErrorMessage(e.code));
-    } catch (e) {
-      if (createdUser != null) {
-        await _deleteCreatedUser(createdUser);
-      }
-      _alertUser('Erro inesperado');
+      _alertUser(e.message ?? 'Erro');
     }
   }
 
-  String _authErrorMessage(String code) {
-    switch (code) {
-      case 'email-already-in-use':
-        return 'E-mail já cadastrado';
-      case 'invalid-email':
-        return 'E-mail inválido';
-      case 'weak-password':
-        return 'A senha deve ter pelo menos 6 caracteres';
-      case 'operation-not-allowed':
-        return 'Cadastro por e-mail e senha não esta habilitado';
-      case 'network-request-failed':
-        return 'Erro de conexão. Verifique sua internet.';
-      default:
-        return 'Erro ao cadastrar';
-    }
+  Future<bool> _enroll2FA(User user, String phoneNumber) async {
+    final normalized = phoneNumber.replaceAll(RegExp(r'[\s\-\(\)]'), '');
+
+    final completer = Completer<bool>();
+
+    await FirebaseAuth.instance.verifyPhoneNumber(
+      phoneNumber: normalized,
+
+      verificationCompleted: (PhoneAuthCredential credential) async {
+        try {
+          await user.multiFactor.enroll(
+            PhoneMultiFactorGenerator.getAssertion(credential),
+            displayName: 'Telefone',
+          );
+          if (!completer.isCompleted) completer.complete(true);
+        } catch (_) {
+          if (!completer.isCompleted) completer.complete(false);
+        }
+      },
+
+      verificationFailed: (FirebaseAuthException e) {
+        if (!completer.isCompleted) completer.complete(false);
+        if (mounted) _alertUser(e.message ?? 'Erro na verificação do telefone');
+      },
+
+      codeSent: (String verificationId, int? resendToken) async {
+        final ok = await _showSmsDialog(user, verificationId);
+        if (!completer.isCompleted) completer.complete(ok);
+      },
+
+      codeAutoRetrievalTimeout: (_) {},
+    );
+
+    return completer.future;
   }
 
-  Future<void> _deleteCreatedUser(User? user) async {
-    try {
-      await user?.delete();
-    } catch (_) {
-      await FirebaseAuth.instance.signOut();
-    }
-  }
+  Future<bool> _showSmsDialog(User user, String verificationId) async {
+    if (!mounted) return false;
 
-  Future<bool> _hasRegisteredValue(String field, String value) async {
-    final result = await FirebaseFirestore.instance
-        .collection('users')
-        .where(field, isEqualTo: value)
-        .limit(1)
-        .get();
+    final codeController = TextEditingController();
+    bool enrolled = false;
 
-    return result.docs.isNotEmpty;
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Verificação SMS'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Digite o código enviado por SMS para ativar a verificação em 2 etapas.',
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: codeController,
+                keyboardType: TextInputType.number,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: 'Código SMS',
+                  prefixIcon: Icon(Icons.sms_outlined),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final smsCode = codeController.text.trim();
+                if (smsCode.isEmpty) return;
+
+                try {
+                  final credential = PhoneAuthProvider.credential(
+                    verificationId: verificationId,
+                    smsCode: smsCode,
+                  );
+
+                  await user.multiFactor.enroll(
+                    PhoneMultiFactorGenerator.getAssertion(credential),
+                    displayName: 'Telefone',
+                  );
+
+                  enrolled = true;
+
+                  if (!dialogContext.mounted) return;
+                  Navigator.pop(dialogContext);
+
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    const SnackBar(content: Text('2FA ativado com sucesso!')),
+                  );
+                } on FirebaseAuthException catch (e) {
+                  if (!dialogContext.mounted) return;
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    SnackBar(content: Text(e.message ?? 'Código inválido')),
+                  );
+                }
+              },
+              child: const Text('Confirmar'),
+            ),
+          ],
+        );
+      },
+    );
+
+    codeController.dispose();
+    return enrolled;
   }
 
   bool _isValidEmail(String email) {
@@ -167,32 +246,17 @@ class _SignUpState extends State<SignUp> {
     return emailRegex.hasMatch(normalized);
   }
 
-  String _onlyNumbers(String value) {
-    return value.replaceAll(RegExp(r'[^0-9]'), '');
-  }
-
   bool _isValidPhone(String phone) {
-    final numbers = _onlyNumbers(phone);
-    if (numbers.length < 10 || numbers.length > 11) {
-      return false;
-    }
-    if (RegExp(r'^(\d)\1*$').hasMatch(numbers)) {
-      return false;
-    }
+    final numbers = phone.replaceAll(RegExp(r'[^0-9]'), '');
+    if (numbers.length > 17) return false;
+    if (RegExp(r'^(\d)\1*$').hasMatch(numbers)) return false;
     return true;
   }
 
   bool _isValidCPF(String cpf) {
-    final numbers = _onlyNumbers(cpf);
-
-    if (numbers.length != 11) {
-      return false;
-    }
-
-    if (RegExp(r'^(\d)\1*$').hasMatch(numbers)) {
-      return false;
-    }
-
+    final numbers = cpf.replaceAll(RegExp(r'[^0-9]'), '');
+    if (numbers.length > 14) return false;
+    if (RegExp(r'^(\d)\1*$').hasMatch(numbers)) return false;
     final digits = numbers.split('').map(int.parse).toList();
 
     int calcDigit(int length) {
@@ -204,10 +268,7 @@ class _SignUpState extends State<SignUp> {
       return result == 10 ? 0 : result;
     }
 
-    final d1 = calcDigit(9);
-    final d2 = calcDigit(10);
-
-    return digits[9] == d1 && digits[10] == d2;
+    return digits[9] == calcDigit(9) && digits[10] == calcDigit(10);
   }
 
   void goToLogIn() {
@@ -216,10 +277,9 @@ class _SignUpState extends State<SignUp> {
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) =>
             const Login(title: 'Invest Up'),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return FadeTransition(opacity: animation, child: child);
-        },
-        transitionDuration: Duration(milliseconds: 175),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+            FadeTransition(opacity: animation, child: child),
+        transitionDuration: const Duration(milliseconds: 175),
       ),
     );
   }
@@ -231,7 +291,7 @@ class _SignUpState extends State<SignUp> {
         return AlertDialog(
           title: const Text('Alerta'),
           content: Text(message),
-          actions: <Widget>[
+          actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
               child: const Text('Fechar'),
@@ -301,11 +361,11 @@ class _SignUpState extends State<SignUp> {
                   padding: const EdgeInsets.all(8),
                   child: Column(
                     children: [
-                      SizedBox(height: 5),
+                      const SizedBox(height: 5),
                       Text(
                         'Criar conta',
                         style: GoogleFonts.lato(
-                          textStyle: TextStyle(
+                          textStyle: const TextStyle(
                             color: Colors.white,
                             fontSize: 25,
                           ),
@@ -315,57 +375,19 @@ class _SignUpState extends State<SignUp> {
                         'Preencha seus dados para começar',
                         textAlign: TextAlign.center,
                         style: GoogleFonts.lato(
-                          textStyle: TextStyle(
+                          textStyle: const TextStyle(
                             color: Color.fromARGB(255, 158, 158, 158),
                             fontSize: 15,
                           ),
                         ),
                       ),
-                      SizedBox(height: 20),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          'Nome completo *',
-                          style: GoogleFonts.lato(
-                            textStyle: TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 7),
-                      SizedBox(
-                        width: 700,
-                        height: 40,
-                        child: TextField(
-                          controller: _nameController,
-                          keyboardType: TextInputType.text,
-                          decoration: const InputDecoration(
-                            labelText: 'Seu nome completo',
-                          ),
-                          style: GoogleFonts.lato(
-                            textStyle: TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 15),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          'E-mail *',
-                          style: GoogleFonts.lato(
-                            textStyle: TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 7),
+                      const SizedBox(height: 20),
+                      _label('Nome completo *'),
+                      const SizedBox(height: 7),
+                      _field(_nameController, 'Seu nome completo', TextInputType.text),
+                      const SizedBox(height: 15),
+                      _label('E-mail *'),
+                      const SizedBox(height: 7),
                       SizedBox(
                         width: 700,
                         height: 40,
@@ -375,152 +397,53 @@ class _SignUpState extends State<SignUp> {
                           inputFormatters: [
                             FilteringTextInputFormatter.deny(RegExp(r'\s')),
                           ],
-                          decoration: const InputDecoration(
-                            labelText: 'seu@email.com',
-                          ),
+                          decoration: const InputDecoration(labelText: 'seu@email.com'),
                           style: GoogleFonts.lato(
-                            textStyle: TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                            ),
+                            textStyle: const TextStyle(color: Colors.white, fontSize: 15),
                           ),
                         ),
                       ),
-                      SizedBox(height: 15),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          'CPF *',
-                          style: GoogleFonts.lato(
-                            textStyle: TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 7),
+                      const SizedBox(height: 15),
+                      _label('CPF *'),
+                      const SizedBox(height: 7),
                       SizedBox(
                         width: 700,
                         height: 40,
                         child: TextField(
                           controller: _cpfController,
                           keyboardType: TextInputType.text,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                            LengthLimitingTextInputFormatter(11),
-                          ],
-                          decoration: const InputDecoration(
-                            labelText: '000.000.000-00',
-                          ),
+                          inputFormatters: [cpfFormatter],
+                          decoration: const InputDecoration(labelText: '000.000.000-00'),
                           style: GoogleFonts.lato(
-                            textStyle: TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                            ),
+                            textStyle: const TextStyle(color: Colors.white, fontSize: 15),
                           ),
                         ),
                       ),
-                      SizedBox(height: 15),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          'Telefone celular *',
-                          style: GoogleFonts.lato(
-                            textStyle: TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 7),
+                      const SizedBox(height: 15),
+                      _label('Telefone celular *'),
+                      const SizedBox(height: 7),
                       SizedBox(
                         width: 700,
                         height: 40,
                         child: TextField(
                           controller: _telController,
                           keyboardType: TextInputType.text,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                            LengthLimitingTextInputFormatter(11),
-                          ],
-                          decoration: const InputDecoration(
-                            labelText: '(00) 00000-0000',
-                          ),
+                          inputFormatters: [telefoneFormatter],
+                          decoration: const InputDecoration(labelText: '(00) 00000-0000'),
                           style: GoogleFonts.lato(
-                            textStyle: TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                            ),
+                            textStyle: const TextStyle(color: Colors.white, fontSize: 15),
                           ),
                         ),
                       ),
-                      SizedBox(height: 15),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          'Senha *',
-                          style: GoogleFonts.lato(
-                            textStyle: TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 7),
-                      SizedBox(
-                        width: 700,
-                        height: 40,
-                        child: TextField(
-                          controller: _passController,
-                          obscureText: true,
-                          keyboardType: TextInputType.text,
-                          decoration: const InputDecoration(
-                            labelText: '******',
-                          ),
-                          style: GoogleFonts.lato(
-                            textStyle: TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 15),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          'Confirmar senha *',
-                          style: GoogleFonts.lato(
-                            textStyle: TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 7),
-                      SizedBox(
-                        width: 700,
-                        height: 40,
-                        child: TextField(
-                          controller: _passConfirmController,
-                          obscureText: true,
-                          keyboardType: TextInputType.text,
-                          decoration: const InputDecoration(
-                            labelText: '******',
-                          ),
-                          style: GoogleFonts.lato(
-                            textStyle: TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 35),
+                      const SizedBox(height: 15),
+                      _label('Senha *'),
+                      const SizedBox(height: 7),
+                      _field(_passController, '******', TextInputType.text, obscure: true),
+                      const SizedBox(height: 15),
+                      _label('Confirmar senha *'),
+                      const SizedBox(height: 7),
+                      _field(_passConfirmController, '******', TextInputType.text, obscure: true),
+                      const SizedBox(height: 35),
                       SizedBox(
                         width: 700,
                         height: 50,
@@ -535,11 +458,11 @@ class _SignUpState extends State<SignUp> {
                           ),
                         ),
                       ),
-                      SizedBox(height: 35),
+                      const SizedBox(height: 35),
                       TextButton(
                         onPressed: goToLogIn,
                         style: TextButton.styleFrom(
-                          backgroundColor: Color.fromARGB(255, 21, 23, 30),
+                          backgroundColor: const Color.fromARGB(255, 21, 23, 30),
                           padding: EdgeInsets.zero,
                           minimumSize: Size.zero,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -552,7 +475,7 @@ class _SignUpState extends State<SignUp> {
                           ),
                         ),
                       ),
-                      SizedBox(height: 35),
+                      const SizedBox(height: 35),
                     ],
                   ),
                 ),
@@ -563,4 +486,34 @@ class _SignUpState extends State<SignUp> {
       ),
     );
   }
+
+  Widget _label(String text) => Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          text,
+          style: GoogleFonts.lato(
+            textStyle: const TextStyle(color: Colors.white, fontSize: 15),
+          ),
+        ),
+      );
+
+  Widget _field(
+    TextEditingController controller,
+    String hint,
+    TextInputType keyboard, {
+    bool obscure = false,
+  }) =>
+      SizedBox(
+        width: 700,
+        height: 40,
+        child: TextField(
+          controller: controller,
+          obscureText: obscure,
+          keyboardType: keyboard,
+          decoration: InputDecoration(labelText: hint),
+          style: GoogleFonts.lato(
+            textStyle: const TextStyle(color: Colors.white, fontSize: 15),
+          ),
+        ),
+      );
 }

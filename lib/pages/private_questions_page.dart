@@ -92,7 +92,7 @@ class _PrivateQuestionsPageState extends State<PrivateQuestionsPage> {
       await FirebaseFirestore.instance.collection('private_questions').add({
         'startupId': widget.startupId,
         'startupName': widget.startupName,
-        'userId': user?.uid,
+        'userId': user.uid,
         'question': text,
         'createdAt': Timestamp.now(),
       });
