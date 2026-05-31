@@ -25,10 +25,12 @@ class _PrivateQuestionsPageState extends State<PrivateQuestionsPage> {
   final TextEditingController _controller = TextEditingController();
 
   bool _sending = false;
-  final Map<String, String> _autoAnswers = {};
-  final Set<String> _pendingAnswers = {};
+  final Map<String, String> _autoAnswers =
+      {}; // Armazena respostas automáticas geradas
+  final Set<String> _pendingAnswers = {}; // Evita gerar respostas duplicadas
 
   bool _isInvestor(Map<String, dynamic> userData) {
+    // Verifica se o usuário investe na startup atual
     final carteira = userData['carteira'] as List<dynamic>? ?? [];
     for (final item in carteira) {
       if (item is Map && item['startup_id'] == widget.startupId) {
@@ -38,6 +40,7 @@ class _PrivateQuestionsPageState extends State<PrivateQuestionsPage> {
     return false;
   }
 
+  // Confirma se o usuário possui acesso à área privada
   Future<bool> _ensureInvestor() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
@@ -52,12 +55,15 @@ class _PrivateQuestionsPageState extends State<PrivateQuestionsPage> {
       return false;
     }
 
-    final userData = userSnap.data() as Map<String, dynamic>;
+    final userData =
+        userSnap.data()
+            as Map<String, dynamic>; // Recupera os dados do documento
     return _isInvestor(userData);
   }
 
+  // Envia uma nova pergunta privada
   Future<void> _sendQuestion() async {
-    final text = _controller.text.trim();
+    final text = _controller.text.trim(); // Obtém o texto digitado
 
     if (text.isEmpty) {
       _showMessage('Digite uma pergunta');
@@ -69,18 +75,20 @@ class _PrivateQuestionsPageState extends State<PrivateQuestionsPage> {
     });
 
     try {
-      final user = FirebaseAuth.instance.currentUser;
+      final user =
+          FirebaseAuth.instance.currentUser; // Recupera usuário autenticado
       if (user == null) {
         _showMessage('Faca login para enviar perguntas privadas');
         return;
       }
 
-      final isInvestor = await _ensureInvestor();
+      final isInvestor =
+          await _ensureInvestor(); // Verifica permissão de investidor
       if (!isInvestor) {
         _showMessage('Apenas investidores podem enviar perguntas privadas');
         return;
       }
-
+      // Salva a pergunta no Firestore
       await FirebaseFirestore.instance.collection('private_questions').add({
         'startupId': widget.startupId,
         'startupName': widget.startupName,
@@ -102,18 +110,22 @@ class _PrivateQuestionsPageState extends State<PrivateQuestionsPage> {
   }
 
   void _showMessage(String message) {
+    // Exibe mensagens rápidas na tela
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  // Gera uma resposta automática para a pergunta
   Future<void> _loadAutoAnswer(String docId, String question) async {
     if (_pendingAnswers.contains(docId)) {
+      // Evita chamadas repetidas
       return;
     }
 
     _pendingAnswers.add(docId);
     try {
+      // Chama a API de resposta automática
       final answer = await FunctionsApi.getAutoResponse(question);
       if (!mounted) {
         return;
@@ -161,6 +173,7 @@ class _PrivateQuestionsPageState extends State<PrivateQuestionsPage> {
       backgroundColor: AppTheme.background,
       appBar: AppBar(title: const Text('Perguntas Privadas')),
       body: StreamBuilder<DocumentSnapshot>(
+        // Escuta alterações do usuário em tempo real
         stream: FirebaseFirestore.instance
             .collection('users')
             .doc(user.uid)
@@ -169,7 +182,7 @@ class _PrivateQuestionsPageState extends State<PrivateQuestionsPage> {
           if (userSnapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-
+          // Caso não encontre usuário
           if (!userSnapshot.hasData || !userSnapshot.data!.exists) {
             return Center(
               child: Text(
@@ -179,9 +192,9 @@ class _PrivateQuestionsPageState extends State<PrivateQuestionsPage> {
               ),
             );
           }
-
+          // Recupera os dados do usuário
           final userData = userSnapshot.data!.data() as Map<String, dynamic>;
-          final isInvestor = _isInvestor(userData);
+          final isInvestor = _isInvestor(userData); // Verifica se é investidor
 
           if (!isInvestor) {
             return Center(
@@ -198,6 +211,7 @@ class _PrivateQuestionsPageState extends State<PrivateQuestionsPage> {
             child: Column(
               children: [
                 TextField(
+                  // Campo para digitar pergunta
                   controller: _controller,
                   maxLines: 4,
                   decoration: const InputDecoration(
@@ -206,11 +220,12 @@ class _PrivateQuestionsPageState extends State<PrivateQuestionsPage> {
                 ),
                 const SizedBox(height: 16),
                 SizedBox(
+                  // Botão de envio
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: _sending ? null : _sendQuestion,
                     child: _sending
-                        ? const CircularProgressIndicator()
+                        ? const CircularProgressIndicator() // Indicador de carregamento
                         : Text(
                             'Enviar pergunta',
                             style: GoogleFonts.lato(
@@ -221,6 +236,7 @@ class _PrivateQuestionsPageState extends State<PrivateQuestionsPage> {
                 ),
                 const SizedBox(height: 24),
                 Expanded(
+                  // Lista de perguntas privadas
                   child: StreamBuilder<QuerySnapshot>(
                     stream: FirebaseFirestore.instance
                         .collection('private_questions')
@@ -229,6 +245,7 @@ class _PrivateQuestionsPageState extends State<PrivateQuestionsPage> {
                         .snapshots(),
                     builder: (context, snapshot) {
                       if (snapshot.hasError) {
+                        // Tratamento de erro
                         return Center(
                           child: Text(
                             'Erro ao carregar perguntas',
@@ -256,6 +273,7 @@ class _PrivateQuestionsPageState extends State<PrivateQuestionsPage> {
                       }
 
                       return ListView.builder(
+                        // Lista dinâmica de perguntas
                         itemCount: docs.length,
                         itemBuilder: (context, index) {
                           final data =
@@ -263,7 +281,7 @@ class _PrivateQuestionsPageState extends State<PrivateQuestionsPage> {
                           final question = (data['question'] ?? '').toString();
                           final docId = docs[index].id;
                           final answer = _autoAnswers[docId];
-
+                          // Gera resposta automática
                           if (answer == null && question.isNotEmpty) {
                             _loadAutoAnswer(docId, question);
                           }
@@ -274,7 +292,10 @@ class _PrivateQuestionsPageState extends State<PrivateQuestionsPage> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(question, style: GoogleFonts.lato()),
+                                  Text(
+                                    question,
+                                    style: GoogleFonts.lato(),
+                                  ), // Exibe pergunta
                                   const SizedBox(height: 10),
                                   if (answer == null)
                                     Text(

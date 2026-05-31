@@ -17,8 +17,8 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
   final TextEditingController _telefoneController = TextEditingController();
   final TextEditingController _cpfController = TextEditingController();
 
-  bool _loadedForm = false;
-  bool _saving = false;
+  bool _loadedForm = false; // Evita preencher o formulário várias vezes
+  bool _saving = false; // Controla o estado de carregamento ao salvar
 
   @override
   void dispose() {
@@ -26,9 +26,10 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
     _emailController.dispose();
     _telefoneController.dispose();
     _cpfController.dispose();
-    super.dispose();
+    super.dispose(); // Libera a memória utilizada pelos controllers
   }
 
+  // Converte qualquer valor para texto de forma segura
   static String _asText(dynamic value, {String fallback = ''}) {
     if (value == null) {
       return fallback;
@@ -37,6 +38,7 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
     return text.isEmpty ? fallback : text;
   }
 
+  // Preenche os campos com os dados do usuário
   void _fillForm(Map<String, dynamic> data, User user) {
     if (_loadedForm) {
       return;
@@ -51,6 +53,7 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
     _loadedForm = true;
   }
 
+  // Método responsável por salvar alterações
   Future<void> _save(User user) async {
     final nome = _nomeController.text.trim();
     final telefone = _telefoneController.text.trim();
@@ -59,12 +62,13 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
       _showMessage('Preencha nome e telefone.');
       return;
     }
-
+    // Ativa indicador de carregamento
     setState(() {
       _saving = true;
     });
 
     try {
+      // Atualiza os dados do usuário no Firestore
       await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
         'nome': nome,
         'email': _emailController.text.trim(),
@@ -72,7 +76,9 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
         'updatedAt': Timestamp.now(),
       }, SetOptions(merge: true));
 
-      await user.updateDisplayName(nome);
+      await user.updateDisplayName(
+        nome,
+      ); // Atualiza também o nome no Firebase Auth
 
       if (mounted) {
         _showMessage('Perfil atualizado.');
@@ -91,6 +97,7 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
     }
   }
 
+  // Exibe mensagens rápidas na parte inferior da tela
   void _showMessage(String message) {
     ScaffoldMessenger.of(
       context,
@@ -114,6 +121,7 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
                 style: TextStyle(color: Colors.white),
               ),
             )
+          // Escuta alterações em tempo real no documento do usuário
           : StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
               stream: FirebaseFirestore.instance
                   .collection('users')
@@ -132,9 +140,9 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
                     ),
                   );
                 }
-
+                // Recupera os dados do documento
                 final data = snapshot.data?.data() ?? {};
-                _fillForm(data, user);
+                _fillForm(data, user); // Preenche os campos
 
                 return SingleChildScrollView(
                   padding: const EdgeInsets.all(16),
@@ -146,20 +154,26 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
                         _emailController,
                         keyboardType: TextInputType.emailAddress,
                         enabled: false,
-                      ),
+                      ), // Campo e-mail bloqueado para edição
                       buildField(
                         'Telefone',
                         _telefoneController,
                         keyboardType: TextInputType.phone,
                       ),
-                      buildField('CPF', _cpfController, enabled: false),
+                      buildField(
+                        'CPF',
+                        _cpfController,
+                        enabled: false,
+                      ), // Campo CPF bloqueado para edição
                       const SizedBox(height: 20),
                       SizedBox(
+                        // Botão para salvar alterações
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed: _saving ? null : () => _save(user),
                           child: _saving
                               ? const SizedBox(
+                                  // Indicador de carregamento
                                   width: 20,
                                   height: 20,
                                   child: CircularProgressIndicator(
@@ -178,6 +192,7 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
     );
   }
 
+  // Método reutilizável para criar campos de texto
   Widget buildField(
     String label,
     TextEditingController controller, {
@@ -185,7 +200,7 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
     bool enabled = true,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 12), // Espaçamento entre os campos
       child: TextField(
         controller: controller,
         enabled: enabled,
@@ -195,7 +210,9 @@ class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
           labelText: label,
           filled: true,
           fillColor: Colors.white,
-          suffixIcon: enabled ? null : const Icon(Icons.lock),
+          suffixIcon: enabled
+              ? null
+              : const Icon(Icons.lock), // Cadeado para campos bloqueados
         ),
       ),
     );
