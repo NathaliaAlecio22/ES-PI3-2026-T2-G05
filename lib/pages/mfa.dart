@@ -101,11 +101,11 @@ class _MfaPageState extends State<MfaPage> {
       if (!mounted) return;
 
       if (widget.onSuccess != null) {
-        // veio de um fluxo específico (ex: exclusão de conta)
+        // Se veio de um fluxo específico como exclusão de conta
         Navigator.pop(context);
         widget.onSuccess!();
       } else {
-        // fluxo padrão: login normal
+        // Se veio do fluxo padrão, login normal
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (_) => const AuthGate()),

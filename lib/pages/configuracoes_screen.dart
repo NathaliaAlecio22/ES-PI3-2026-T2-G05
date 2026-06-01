@@ -463,11 +463,11 @@ class ConfiguracoesScreen extends StatelessWidget {
 
                   await user.reauthenticateWithCredential(credential);
 
-                  // reautenticação OK — prossegue com a exclusão
+                  // Se a reautenticação está ok, prossegue com a exclusão
                   await _deleteAccountData(context, user);
 
                 } on FirebaseAuthMultiFactorException catch (e) {
-                  // usuário tem 2FA: fecha o dialog de senha e abre o MFA
+                  // Se o usuário tem 2FA fecha o dialog de senha e abre o MFA
                   if (!context.mounted) return;
                   Navigator.pop(context);
 
