@@ -36,24 +36,26 @@ class _MfaPageState extends State<MfaPage> {
     setState(() => loading = true);
 
     try {
-      // pega o primeiro método MFA (telefone)
       final hint = widget.resolver.hints
           .whereType<PhoneMultiFactorInfo>()
           .first;
 
       await FirebaseAuth.instance.verifyPhoneNumber(
         multiFactorSession: widget.resolver.session,
+        multiFactorInfo: hint,
 
-        phoneNumber: hint.phoneNumber,
-
-        verificationCompleted: (_) {},
+        verificationCompleted: (_) {
+          debugPrint('>>> verificationCompleted chamado');
+        },
 
         verificationFailed: (e) {
+          debugPrint('>>> verificationFailed: ${e.code} | ${e.message}');
           setState(() => loading = false);
           _showError(e.message ?? "Erro ao enviar SMS");
         },
 
         codeSent: (verificationId, _) {
+          debugPrint('>>> codeSent chamado');
           setState(() {
             this.verificationId = verificationId;
             loading = false;
@@ -61,10 +63,13 @@ class _MfaPageState extends State<MfaPage> {
         },
 
         codeAutoRetrievalTimeout: (verificationId) {
+          debugPrint('>>> codeAutoRetrievalTimeout');
           this.verificationId = verificationId;
         },
       );
+
     } catch (e) {
+      debugPrint('>>> catch geral: $e');
       setState(() => loading = false);
       _showError("Erro ao enviar código MFA");
     }
