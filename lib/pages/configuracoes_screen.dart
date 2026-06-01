@@ -1,3 +1,5 @@
+//Beatriz Leme - 25015554
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -7,7 +9,7 @@ import 'editar_perfil_screen.dart';
 
 class ConfiguracoesScreen extends StatelessWidget {
   const ConfiguracoesScreen({super.key});
-
+  // Método auxiliar para tratar valores nulos ou vazios
   static String _asText(dynamic value, {String fallback = ''}) {
     if (value == null) {
       return fallback;
@@ -21,7 +23,7 @@ class ConfiguracoesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
-
+    // Estrutura principal da tela
     return Scaffold(
       backgroundColor: const Color(0xFF0D1117),
 
@@ -32,7 +34,7 @@ class ConfiguracoesScreen extends StatelessWidget {
                 style: TextStyle(color: Colors.white),
               ),
             )
-
+          // Escuta alterações em tempo real do Firestore
           : StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
               stream: FirebaseFirestore.instance
                   .collection('users')
@@ -40,17 +42,11 @@ class ConfiguracoesScreen extends StatelessWidget {
                   .snapshots(),
 
               builder: (context, snapshot) {
-
-                if (snapshot.connectionState ==
-                    ConnectionState.waiting) {
-
-                  return const Center(
-                    child: CircularProgressIndicator(),
-                  );
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
                 }
 
                 if (snapshot.hasError) {
-
                   return const Center(
                     child: Text(
                       'Erro ao carregar dados do usuário',
@@ -59,21 +55,14 @@ class ConfiguracoesScreen extends StatelessWidget {
                   );
                 }
 
-                if (!snapshot.hasData ||
-                    !snapshot.data!.exists) {
-
-                  return _buildMissingProfile(
-                    context,
-                    user,
-                  );
+                if (!snapshot.hasData || !snapshot.data!.exists) {
+                  return _buildMissingProfile(context, user);
                 }
 
                 final data = snapshot.data!.data() ?? {};
 
                 final nome = _asText(
-                  data['nome'] ??
-                      data['name'] ??
-                      user.displayName,
+                  data['nome'] ?? data['name'] ?? user.displayName,
                   fallback: 'Investidor',
                 );
 
@@ -87,16 +76,10 @@ class ConfiguracoesScreen extends StatelessWidget {
                   fallback: 'Telefone não informado',
                 );
 
-                final cpf = _asText(
-                  data['cpf'],
-                  fallback: 'CPF não informado',
-                );
+                final cpf = _asText(data['cpf'], fallback: 'CPF não informado');
 
-                final inicial =
-                    nome.isEmpty
-                        ? 'I'
-                        : nome[0].toUpperCase();
-
+                final inicial = nome.isEmpty ? 'I' : nome[0].toUpperCase();
+                // Estrutura principal da tela
                 return Column(
                   children: [
                     Container(
@@ -111,40 +94,36 @@ class ConfiguracoesScreen extends StatelessWidget {
 
                       decoration: const BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [
-                            Color(0xFF7B2FF7),
-                            Color(0xFF00C6FF),
-                          ],
+                          colors: [Color(0xFF7B2FF7), Color(0xFF00C6FF)],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                       ),
 
                       child: Column(
-                        crossAxisAlignment:
-                            CrossAxisAlignment.start,
+                        // Conteúdo interno do cabeçalho
+                        crossAxisAlignment: CrossAxisAlignment.start,
 
                         children: [
-
                           Row(
-                            mainAxisAlignment:
-                                MainAxisAlignment.spaceBetween,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
 
                             children: [
-
                               IconButton(
+                                // Botão de voltar
                                 icon: const Icon(
                                   Icons.arrow_back,
                                   color: Colors.white,
                                 ),
 
-                                onPressed: () =>
-                                    Navigator.pop(context),
+                                onPressed: () => Navigator.pop(
+                                  context,
+                                ), // Retorna para tela anterior
                               ),
 
                               Row(
+                                // Linha do título
                                 children: [
-
                                   const Text(
                                     'Configurações',
                                     style: TextStyle(
@@ -156,13 +135,13 @@ class ConfiguracoesScreen extends StatelessWidget {
                                   const SizedBox(width: 10),
 
                                   IconButton(
+                                    // Botão de editar perfil
                                     icon: const Icon(
                                       Icons.edit,
                                       color: Colors.white,
                                     ),
 
                                     onPressed: () {
-
                                       Navigator.push(
                                         context,
 
@@ -183,66 +162,55 @@ class ConfiguracoesScreen extends StatelessWidget {
                           const SizedBox(height: 20),
 
                           Container(
+                            // Card do usuário
                             padding: const EdgeInsets.all(16),
 
                             decoration: BoxDecoration(
-                              borderRadius:
-                                  BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(16),
 
-                              color:
-                                  Colors.white.withAlpha(26),
+                              color: Colors.white.withAlpha(26),
                             ),
 
                             child: Row(
                               children: [
-
                                 CircleAvatar(
-                                  radius: 30,
-                                  backgroundColor:
-                                      Colors.white24,
+                                  // Avatar do usuário
+                                  radius: 30, // Tamanho do avatar
+                                  backgroundColor: Colors.white24,
 
                                   child: Text(
                                     inicial,
-                                    style:
-                                        const TextStyle(
-                                      fontSize: 24,
-                                    ),
+                                    style: const TextStyle(fontSize: 24),
                                   ),
                                 ),
 
                                 const SizedBox(width: 16),
 
                                 Expanded(
+                                  // Área expandida dos textos
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
 
                                     children: [
-
                                       Text(
                                         nome,
                                         overflow:
-                                            TextOverflow
+                                            TextOverflow // Evita overflow
                                                 .ellipsis,
 
-                                        style:
-                                            const TextStyle(
-                                          color:
-                                              Colors.white,
+                                        style: const TextStyle(
+                                          color: Colors.white,
                                           fontSize: 18,
                                         ),
                                       ),
 
                                       Text(
                                         email,
-                                        overflow:
-                                            TextOverflow
-                                                .ellipsis,
+                                        overflow: TextOverflow.ellipsis,
 
-                                        style:
-                                            const TextStyle(
-                                          color:
-                                              Colors.white70,
+                                        style: const TextStyle(
+                                          color: Colors.white70,
                                         ),
                                       ),
                                     ],
@@ -256,16 +224,14 @@ class ConfiguracoesScreen extends StatelessWidget {
                     ),
 
                     Expanded(
+                      // Parte inferior da tela
                       child: Padding(
-                        padding:
-                            const EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(16),
 
                         child: Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
 
                           children: [
-
                             const Text(
                               'Informações da conta',
                               style: TextStyle(
@@ -276,82 +242,53 @@ class ConfiguracoesScreen extends StatelessWidget {
 
                             const SizedBox(height: 16),
 
-                            buildItem(
-                              Icons.email,
-                              'E-mail',
-                              email,
-                            ),
+                            buildItem(Icons.email, 'E-mail', email),
 
-                            buildItem(
-                              Icons.phone,
-                              'Telefone',
-                              telefone,
-                            ),
+                            buildItem(Icons.phone, 'Telefone', telefone),
 
-                            buildItem(
-                              Icons.badge,
-                              'CPF',
-                              cpf,
-                            ),
+                            buildItem(Icons.badge, 'CPF', cpf),
 
                             const Spacer(),
 
                             // ALICE BESERRA - 24794521
                             ElevatedButton(
-                              style:
-                                  ElevatedButton.styleFrom(
-                                backgroundColor:
-                                    Colors.blueGrey,
-                                minimumSize:
-                                    const Size(
-                                  double.infinity,
-                                  50,
-                                ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blueGrey,
+                                minimumSize: const Size(double.infinity, 50),
                               ),
 
                               onPressed: () async {
-
                                 await FirebaseAuth.instance.signOut();
 
                                 if (!context.mounted) {
                                   return;
                                 }
-
+                                // Remove as telas anteriores e volta para o AuthGate.
                                 Navigator.pushAndRemoveUntil(
                                   context,
-                                  MaterialPageRoute(builder: (_) => const AuthGate()),
+                                  MaterialPageRoute(
+                                    builder: (_) => const AuthGate(),
+                                  ),
                                   (route) => false,
                                 );
                               },
 
-                              child: const Text(
-                                'Sair da conta',
-                              ),
+                              child: const Text('Sair da conta'),
                             ),
 
                             const SizedBox(height: 15),
 
                             ElevatedButton(
-                              style:
-                                  ElevatedButton.styleFrom(
-                                backgroundColor:
-                                    Colors.red,
+                              // Botão de excluir conta.
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
 
-                                minimumSize:
-                                    const Size(
-                                  double.infinity,
-                                  50,
-                                ),
+                                minimumSize: const Size(double.infinity, 50),
                               ),
 
-                              onPressed: () =>
-                                  _confirmDeleteAccount(
-                                context,
-                              ),
+                              onPressed: () => _confirmDeleteAccount(context),
 
-                              child: const Text(
-                                'Excluir conta',
-                              ),
+                              child: const Text('Excluir conta'),
                             ),
                           ],
                         ),
@@ -364,6 +301,7 @@ class ConfiguracoesScreen extends StatelessWidget {
     );
   }
 
+  // Mostra uma tela alternativa caso o usuário exista no Auth, mas não exista documento dele em users/{uid}.
   Widget _buildMissingProfile(BuildContext context, User user) {
     return Center(
       child: Padding(
@@ -371,7 +309,12 @@ class ConfiguracoesScreen extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 48),
+            // Ícone de alerta.
+            const Icon(
+              Icons.warning_amber_rounded,
+              color: Colors.orange,
+              size: 48,
+            ),
             const SizedBox(height: 16),
             const Text(
               'Perfil incompleto',
@@ -380,6 +323,7 @@ class ConfiguracoesScreen extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             const Text(
+              // Explicação para o usuário.
               'Seus dados não foram encontrados. '
               'Por favor, saia e cadastre-se novamente.',
               textAlign: TextAlign.center,
@@ -387,11 +331,15 @@ class ConfiguracoesScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+              // Botão para sair da conta.
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+              ),
               onPressed: () async {
                 await FirebaseAuth.instance.signOut();
                 if (!context.mounted) return;
                 Navigator.pushAndRemoveUntil(
+                  // Volta para o AuthGate limpando a pilha de navegação.
                   context,
                   MaterialPageRoute(builder: (_) => const AuthGate()),
                   (route) => false,
@@ -405,6 +353,7 @@ class ConfiguracoesScreen extends StatelessWidget {
     );
   }
 
+  // Confirma a exclusão da conta pedindo a senha do usuário.
   Future<void> _confirmDeleteAccount(BuildContext context) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -419,7 +368,8 @@ class ConfiguracoesScreen extends StatelessWidget {
           content: TextField(
             obscureText: true,
             decoration: const InputDecoration(labelText: 'Digite sua senha'),
-            onChanged: (value) => senha = value,
+            onChanged: (value) => senha =
+                value, // Atualiza a variável senha conforme o usuário digita.
           ),
           actions: [
             TextButton(
@@ -427,6 +377,7 @@ class ConfiguracoesScreen extends StatelessWidget {
               child: const Text('Cancelar'),
             ),
             ElevatedButton(
+              // Botão confirmar tenta reautenticar e excluir a conta.
               onPressed: () async {
                 try {
                   final credential = EmailAuthProvider.credential(
@@ -438,13 +389,13 @@ class ConfiguracoesScreen extends StatelessWidget {
 
                   // Se a reautenticação está ok, prossegue com a exclusão
                   await _deleteAccountData(context, user);
-
                 } on FirebaseAuthMultiFactorException catch (e) {
                   // Se o usuário tem 2FA fecha o dialog de senha e abre o MFA
                   if (!context.mounted) return;
-                  Navigator.pop(context);
+                  Navigator.pop(context); // Fecha o diálogo de senha.
 
                   await Navigator.push(
+                    // Abre a tela MFA para validar o segundo fator.
                     context,
                     MaterialPageRoute(
                       builder: (_) => MfaPage(
@@ -453,7 +404,6 @@ class ConfiguracoesScreen extends StatelessWidget {
                       ),
                     ),
                   );
-
                 } on FirebaseAuthException catch (e) {
                   if (!context.mounted) return;
                   Navigator.pop(context);
@@ -470,6 +420,7 @@ class ConfiguracoesScreen extends StatelessWidget {
     );
   }
 
+  // Exclui os dados do usuário no Firestore e depois exclui a conta no Auth.
   Future<void> _deleteAccountData(BuildContext context, User user) async {
     try {
       // 1. Firestore primeiro, enquanto o token ainda é válido
@@ -485,7 +436,7 @@ class ConfiguracoesScreen extends StatelessWidget {
       await FirebaseAuth.instance.signOut();
 
       if (!context.mounted) return;
-
+      // Volta para o AuthGate e limpa as telas anteriores.
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const AuthGate()),
@@ -493,66 +444,44 @@ class ConfiguracoesScreen extends StatelessWidget {
       );
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao excluir conta: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erro ao excluir conta: $e')));
     }
   }
 
-  Widget buildItem(
-    IconData icon,
-    String title,
-    String value,
-  ) {
-
+  // Widget reutilizável para itens da conta
+  Widget buildItem(IconData icon, String title, String value) {
     return Container(
-      margin: const EdgeInsets.only(
-        bottom: 12,
-      ),
+      margin: const EdgeInsets.only(bottom: 12),
 
       padding: const EdgeInsets.all(16),
 
       decoration: BoxDecoration(
         color: const Color(0xFF161B22),
 
-        borderRadius:
-            BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12),
       ),
 
       child: Row(
         children: [
-
-          Icon(
-            icon,
-            color: Colors.white70,
-          ),
+          Icon(icon, color: Colors.white70),
 
           const SizedBox(width: 16),
 
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
 
               children: [
-
-                Text(
-                  title,
-
-                  style: const TextStyle(
-                    color: Colors.white70,
-                  ),
-                ),
+                Text(title, style: const TextStyle(color: Colors.white70)),
 
                 Text(
                   value,
 
-                  overflow:
-                      TextOverflow.ellipsis,
+                  overflow: TextOverflow.ellipsis,
 
-                  style: const TextStyle(
-                    color: Colors.white,
-                  ),
+                  style: const TextStyle(color: Colors.white),
                 ),
               ],
             ),
