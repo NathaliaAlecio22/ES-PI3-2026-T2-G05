@@ -364,67 +364,40 @@ class ConfiguracoesScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMissingProfile(
-    BuildContext context,
-    User user,
-  ) {
-
+  Widget _buildMissingProfile(BuildContext context, User user) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
-
         child: Column(
           mainAxisSize: MainAxisSize.min,
-
           children: [
-
-            const Text(
-              'Perfil não encontrado',
-              textAlign: TextAlign.center,
-
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-              ),
-            ),
-
-            const SizedBox(height: 10),
-
-            Text(
-              'Nao existe documento em users/${user.uid}.',
-
-              textAlign: TextAlign.center,
-
-              style: const TextStyle(
-                color: Colors.white70,
-              ),
-            ),
-
+            const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 48),
             const SizedBox(height: 16),
-
+            const Text(
+              'Perfil incompleto',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white, fontSize: 20),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'Seus dados não foram encontrados. '
+              'Por favor, saia e cadastre-se novamente.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white70),
+            ),
+            const SizedBox(height: 24),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
               onPressed: () async {
-
-                await FirebaseFirestore.instance
-                    .collection('users')
-                    .doc(user.uid)
-                    .set({
-                      'nome':
-                          user.displayName ?? '',
-                      'email':
-                          user.email ?? '',
-                      'cpf': '',
-                      'telefone': '',
-                      'saldo': 0,
-                      'carteira': [],
-                      'createdAt':
-                          Timestamp.now(),
-                    });
+                await FirebaseAuth.instance.signOut();
+                if (!context.mounted) return;
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AuthGate()),
+                  (route) => false,
+                );
               },
-
-              child: const Text(
-                'Criar perfil',
-              ),
+              child: const Text('Sair da conta'),
             ),
           ],
         ),
