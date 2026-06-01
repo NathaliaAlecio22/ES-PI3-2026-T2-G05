@@ -13,6 +13,7 @@ import 'package:invest_up/theme/app_theme.dart';
 import 'firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:invest_up/pages/welcome_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,8 +40,21 @@ class InvestUp extends StatelessWidget {
   }
 }
 
-class AuthGate extends StatelessWidget {
+class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
+
+  @override
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+  bool mostrarLogin = false;
+
+  void irParaLogin() {
+    setState(() {
+      mostrarLogin = true;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +71,11 @@ class AuthGate extends StatelessWidget {
           return const HomePage();
         }
 
-        return const Login(title: "Invest Up");
+        if (mostrarLogin) {
+          return const Login(title: "Invest Up");
+        } else {
+          return WelcomeScreen(aoFinalizar: irParaLogin);
+        }
       },
     );
   }
@@ -94,8 +112,7 @@ class _LoginState extends State<Login> {
     }
 
     try {
-      final credential =
-          await FirebaseAuth.instance.signInWithEmailAndPassword(
+      final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: emailText,
         password: passwordText,
       );
@@ -112,22 +129,14 @@ class _LoginState extends State<Login> {
         context,
         MaterialPageRoute(builder: (_) => const HomePage()),
       );
-    }
-
-    on FirebaseAuthMultiFactorException catch (e) {
+    } on FirebaseAuthMultiFactorException catch (e) {
       if (!mounted) return;
 
       Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (_) => MfaPage(
-            resolver: e.resolver,
-          ),
-        ),
+        MaterialPageRoute(builder: (_) => MfaPage(resolver: e.resolver)),
       );
-    }
-
-    on FirebaseAuthException catch (e) {
+    } on FirebaseAuthException catch (e) {
       _alertUser(e.message ?? 'Erro ao fazer login');
     }
   }
@@ -178,7 +187,7 @@ class _LoginState extends State<Login> {
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(opacity: animation, child: child);
         },
-        transitionDuration: Duration(milliseconds: 175),
+        transitionDuration: const Duration(milliseconds: 175),
       ),
     );
   }
@@ -192,7 +201,7 @@ class _LoginState extends State<Login> {
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(opacity: animation, child: child);
         },
-        transitionDuration: Duration(milliseconds: 175),
+        transitionDuration: const Duration(milliseconds: 175),
       ),
     );
   }
@@ -305,7 +314,7 @@ class _LoginState extends State<Login> {
                           'Entre na sua conta para continuar',
                           style: GoogleFonts.lato(
                             textStyle: TextStyle(
-                              color: Color.fromARGB(255, 158, 158, 158),
+                              color: const Color.fromARGB(255, 158, 158, 158),
                               fontSize: isCompact ? 14 : 15,
                             ),
                           ),
@@ -318,7 +327,7 @@ class _LoginState extends State<Login> {
                           child: Text(
                             'E-mail',
                             style: GoogleFonts.lato(
-                              textStyle: TextStyle(
+                              textStyle: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 15,
                               ),
@@ -357,7 +366,7 @@ class _LoginState extends State<Login> {
                           child: Text(
                             'Senha',
                             style: GoogleFonts.lato(
-                              textStyle: TextStyle(
+                              textStyle: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 15,
                               ),
@@ -398,7 +407,7 @@ class _LoginState extends State<Login> {
                             TextButton(
                               onPressed: goToRecoverPass,
                               style: TextButton.styleFrom(
-                                backgroundColor: Color.fromARGB(
+                                backgroundColor: const Color.fromARGB(
                                   255,
                                   21,
                                   23,
@@ -475,7 +484,7 @@ class _LoginState extends State<Login> {
                             TextButton(
                               onPressed: goToSignUp,
                               style: TextButton.styleFrom(
-                                backgroundColor: Color.fromARGB(
+                                backgroundColor: const Color.fromARGB(
                                   255,
                                   21,
                                   23,
