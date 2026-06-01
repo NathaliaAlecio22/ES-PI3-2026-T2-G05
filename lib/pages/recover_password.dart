@@ -30,34 +30,38 @@ class _RecoverPasswordState extends State<RecoverPassword> {
     if (emailText.isEmpty) {
       _alertUser('É necessário informar seu e-mail para recuperação de senha.');
       return;
-    } else if (!emailText.contains('@')) {
+    }
+
+    if (!_isValidEmail(emailText)) {
       _alertUser('E-mail inválido');
       return;
-    } else {
-      setState(() {
-        _isSending = true;
-      });
-
-      try {
-        await FirebaseAuth.instance.setLanguageCode('pt-BR');
-        await FirebaseAuth.instance.sendPasswordResetEmail(email: emailText);
-        if (!mounted) {
-          return;
-        }
-        _alertUser(
-          'Se existir uma conta para este e-mail, enviaremos as instruções de redefinição. Verifique caixa de entrada e spam.',
-          onClose: goToLogIn,
-        );
-      } on FirebaseAuthException catch (e) {
-        _alertUser(e.message ?? 'Não foi possível enviar o e-mail.');
-      } finally {
-        if (mounted) {
-          setState(() {
-            _isSending = false;
-          });
-        }
-      }
     }
+
+    setState(() => _isSending = true);
+
+    try {
+      await FirebaseAuth.instance.setLanguageCode('pt-BR');
+      debugPrint('>>> Enviando email para: $emailText');
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: emailText);
+      debugPrint('>>> Email enviado com sucesso');
+      if (!mounted) return;
+      _alertUser(
+        'Se existir uma conta para este e-mail, enviaremos as instruções de redefinição. Verifique caixa de entrada e spam.',
+        onClose: goToLogIn,
+      );
+    } on FirebaseAuthException catch (e) {
+      debugPrint('>>> FirebaseAuthException: ${e.code} | ${e.message}');
+      _alertUser(e.message ?? 'Não foi possível enviar o e-mail.');
+    } catch (e) {
+      debugPrint('>>> Erro inesperado: $e');
+    } finally {
+      if (mounted) setState(() => _isSending = false);
+    }
+  }
+
+  bool _isValidEmail(String email) {
+    final emailRegex = RegExp(r'^[\w\.-]+@[\w\.-]+\.\w{2,}$');
+    return emailRegex.hasMatch(email.trim().toLowerCase());
   }
 
   void goToLogIn() {
