@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:invest_up/main.dart';
+import 'package:invest_up/pages/mfa.dart';
 import 'editar_perfil_screen.dart';
 
 class ConfiguracoesScreen extends StatelessWidget {
@@ -294,7 +295,7 @@ class ConfiguracoesScreen extends StatelessWidget {
                             ),
 
                             const Spacer(),
-                            
+
                             // ALICE BESERRA - 24794521
                             ElevatedButton(
                               style:
@@ -310,9 +311,7 @@ class ConfiguracoesScreen extends StatelessWidget {
 
                               onPressed: () async {
 
-                                await FirebaseAuth
-                                    .instance
-                                    .signOut();
+                                await FirebaseAuth.instance.signOut();
 
                                 if (!context.mounted) {
                                   return;
@@ -320,15 +319,7 @@ class ConfiguracoesScreen extends StatelessWidget {
 
                                 Navigator.pushAndRemoveUntil(
                                   context,
-
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        const Login(
-                                      title:
-                                          'Invest Up',
-                                    ),
-                                  ),
-
+                                  MaterialPageRoute(builder: (_) => const AuthGate()),
                                   (route) => false,
                                 );
                               },
@@ -441,124 +432,94 @@ class ConfiguracoesScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _confirmDeleteAccount(
-    BuildContext context,
-  ) async {
-
-    final user =
-        FirebaseAuth.instance.currentUser;
-
+  Future<void> _confirmDeleteAccount(BuildContext context) async {
+    final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
     String senha = '';
 
     await showDialog(
       context: context,
-
       builder: (context) {
-
         return AlertDialog(
-          title: const Text(
-            'Confirmar senha',
-          ),
-
+          title: const Text('Confirmar senha'),
           content: TextField(
             obscureText: true,
-
-            decoration:
-                const InputDecoration(
-              labelText:
-                  'Digite sua senha',
-            ),
-
-            onChanged: (value) {
-              senha = value;
-            },
+            decoration: const InputDecoration(labelText: 'Digite sua senha'),
+            onChanged: (value) => senha = value,
           ),
-
           actions: [
-
             TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-
-              child: const Text(
-                'Cancelar',
-              ),
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
             ),
-
             ElevatedButton(
               onPressed: () async {
-
                 try {
-
-                  final credential =
-                      EmailAuthProvider
-                          .credential(
+                  final credential = EmailAuthProvider.credential(
                     email: user.email!,
                     password: senha,
                   );
 
-                  await user
-                      .reauthenticateWithCredential(
-                    credential,
-                  );
+                  await user.reauthenticateWithCredential(credential);
 
-                  await FirebaseFirestore
-                      .instance
-                      .collection('users')
-                      .doc(user.uid)
-                      .delete();
+                  // reautenticação OK — prossegue com a exclusão
+                  await _deleteAccountData(context, user);
 
-                  await user.delete();
-
-                  await FirebaseAuth
-                      .instance
-                      .signOut();
-
-                  if (!context.mounted) {
-                    return;
-                  }
-
-                  Navigator.pushAndRemoveUntil(
-                    context,
-
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          const Login(
-                        title:
-                            'Invest Up',
-                      ),
-                    ),
-
-                    (route) => false,
-                  );
-
-                } catch (e) {
-
+                } on FirebaseAuthMultiFactorException catch (e) {
+                  // usuário tem 2FA: fecha o dialog de senha e abre o MFA
+                  if (!context.mounted) return;
                   Navigator.pop(context);
 
-                  ScaffoldMessenger.of(
+                  await Navigator.push(
                     context,
-                  ).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Erro ao excluir conta',
+                    MaterialPageRoute(
+                      builder: (_) => MfaPage(
+                        resolver: e.resolver,
+                        onSuccess: () => _deleteAccountData(context, user),
                       ),
                     ),
+                  );
+
+                } on FirebaseAuthException catch (e) {
+                  if (!context.mounted) return;
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(e.message ?? 'Senha incorreta')),
                   );
                 }
               },
-
-              child: const Text(
-                'Excluir',
-              ),
+              child: const Text('Confirmar'),
             ),
           ],
         );
       },
     );
+  }
+
+  Future<void> _deleteAccountData(BuildContext context, User user) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .delete();
+
+      await user.delete();
+      await FirebaseAuth.instance.signOut();
+
+      if (!context.mounted) return;
+
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const AuthGate()),
+        (route) => false,
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erro ao excluir conta')),
+      );
+    }
   }
 
   Widget buildItem(

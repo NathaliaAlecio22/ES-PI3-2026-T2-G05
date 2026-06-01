@@ -3,13 +3,18 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:invest_up/pages/home_page.dart';
 import 'package:invest_up/theme/app_theme.dart';
+import 'package:invest_up/main.dart';
 
 class MfaPage extends StatefulWidget {
   final MultiFactorResolver resolver;
+  final VoidCallback? onSuccess;
 
-  const MfaPage({super.key, required this.resolver});
+  const MfaPage({
+    super.key,
+    required this.resolver,
+    this.onSuccess,
+  });
 
   @override
   State<MfaPage> createState() => _MfaPageState();
@@ -90,10 +95,18 @@ class _MfaPageState extends State<MfaPage> {
 
       if (!mounted) return;
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HomePage()),
-      );
+      if (widget.onSuccess != null) {
+        // veio de um fluxo específico (ex: exclusão de conta)
+        Navigator.pop(context);
+        widget.onSuccess!();
+      } else {
+        // fluxo padrão: login normal
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const AuthGate()),
+          (route) => false,
+        );
+      }
     } catch (e) {
       _showError("Código inválido ou expirado");
       setState(() => loading = false);

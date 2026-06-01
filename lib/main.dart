@@ -19,7 +19,7 @@ void main() async {
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   if (kIsWeb) {
-    await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
+    await FirebaseAuth.instance.setPersistence(Persistence.SESSION);
   }
 
   runApp(const InvestUp());
