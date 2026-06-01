@@ -499,12 +499,16 @@ class ConfiguracoesScreen extends StatelessWidget {
 
   Future<void> _deleteAccountData(BuildContext context, User user) async {
     try {
+      // 1. Firestore primeiro, enquanto o token ainda é válido
       await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
           .delete();
 
+      // 2. Depois deleta o Auth
       await user.delete();
+
+      // 3. signOut por garantia
       await FirebaseAuth.instance.signOut();
 
       if (!context.mounted) return;
@@ -517,7 +521,7 @@ class ConfiguracoesScreen extends StatelessWidget {
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erro ao excluir conta')),
+        SnackBar(content: Text('Erro ao excluir conta: $e')),
       );
     }
   }

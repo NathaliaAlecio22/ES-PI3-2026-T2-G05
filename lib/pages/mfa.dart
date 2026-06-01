@@ -33,6 +33,7 @@ class _MfaPageState extends State<MfaPage> {
   }
 
   Future<void> _sendCode() async {
+    if (!mounted) return;
     setState(() => loading = true);
 
     try {
@@ -44,18 +45,16 @@ class _MfaPageState extends State<MfaPage> {
         multiFactorSession: widget.resolver.session,
         multiFactorInfo: hint,
 
-        verificationCompleted: (_) {
-          debugPrint('>>> verificationCompleted chamado');
-        },
+        verificationCompleted: (_) {},
 
         verificationFailed: (e) {
-          debugPrint('>>> verificationFailed: ${e.code} | ${e.message}');
+          if (!mounted) return;
           setState(() => loading = false);
           _showError(e.message ?? "Erro ao enviar SMS");
         },
 
         codeSent: (verificationId, _) {
-          debugPrint('>>> codeSent chamado');
+          if (!mounted) return;
           setState(() {
             this.verificationId = verificationId;
             loading = false;
@@ -63,13 +62,13 @@ class _MfaPageState extends State<MfaPage> {
         },
 
         codeAutoRetrievalTimeout: (verificationId) {
-          debugPrint('>>> codeAutoRetrievalTimeout');
-          this.verificationId = verificationId;
+          if (!mounted) return;
+          setState(() => this.verificationId = verificationId);
         },
       );
 
     } catch (e) {
-      debugPrint('>>> catch geral: $e');
+      if (!mounted) return;
       setState(() => loading = false);
       _showError("Erro ao enviar código MFA");
     }
@@ -87,6 +86,7 @@ class _MfaPageState extends State<MfaPage> {
     }
 
     try {
+      if (!mounted) return;
       setState(() => loading = true);
 
       final credential = PhoneAuthProvider.credential(
@@ -101,11 +101,9 @@ class _MfaPageState extends State<MfaPage> {
       if (!mounted) return;
 
       if (widget.onSuccess != null) {
-        // Se veio de um fluxo específico como exclusão de conta
         Navigator.pop(context);
         widget.onSuccess!();
       } else {
-        // Se veio do fluxo padrão, login normal
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (_) => const AuthGate()),
@@ -113,8 +111,9 @@ class _MfaPageState extends State<MfaPage> {
         );
       }
     } catch (e) {
-      _showError("Código inválido ou expirado");
+      if (!mounted) return;
       setState(() => loading = false);
+      _showError("Código inválido ou expirado");
     }
   }
 
